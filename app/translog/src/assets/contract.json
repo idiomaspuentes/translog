@@ -1,0 +1,40 @@
+{
+    "language": {
+        "code": "esp",
+        "name": "e_419",
+        "books": [
+            {
+                "name": "ruth",
+                "content": "",
+                "code": "RUT",
+                "sessions": [
+                    {
+                        "id": 1,
+                        "title": "review_2026",
+                        "startDate": "2026-04-27T17:00:00Z",
+                        "endDate": "2026-04-27T17:00:00Z",
+                        "reviews": [
+                            {
+                                "text": "text",
+                                "reference": {
+                                    "chapterStart": 1,
+                                    "verseStart": 1,
+                                    "chapterEnd": 1,
+                                    "verseEnd": 22
+                                },
+                                "date": "2026-04-27T17:00:00Z",
+                                "comments": [
+                                    {
+                                        "date": "2026-04-27T17:00:00Z",
+                                        "author": "elias",
+                                        "text": " comment "
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
