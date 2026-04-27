@@ -10,10 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.1",
     "@capacitor/cli": "^8.3.1",
     "@capacitor/core": "^8.3.1",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@translog/back": "file:../../back",
+    "@translog/domain": "file:../../domain",
+    "@translog/presentation": "file:../../presentation",
+    "@translog/ui": "file:../../ui"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
