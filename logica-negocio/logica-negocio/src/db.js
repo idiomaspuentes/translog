@@ -1,39 +1,26 @@
 const DB_NAME = "translog";
-const DB_VERSION = 2; // CONTRACT_VERSION = 2
-let db = null;
+const DB_VERSION = 4;
 
-function openDb() {
+export function openDb() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onerror = (event) => {
-      reject(new Error(`Error abriendo base de datos: ${event.target.error}`));
-    };
-
-    request.onsuccess = (event) => {
-      db = event.target.result;
-      resolve(db);
-    };
-
-    request.onupgradeneeded = (event) => {
-      db = event.target.result;
-
-      if (!db.objectStoreNames.contains("sessions")) {
-        const store = db.createObjectStore("sessions", {
-            keyPath: "sessionId",
-          });
-        store.createIndex("byBookId", "bookId", { unique: false });
+    request.onerror = (e) => reject(e.target.error);
+    request.onsuccess = (e) => resolve(e.target.result);
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains("languages")) db.createObjectStore("languages", { keyPath: "code" });
+      if (!db.objectStoreNames.contains("books")) {
+        const s = db.createObjectStore("books", { keyPath: "code" });
+        s.createIndex("byLang", "langCode", { unique: false });
       }
-
+      if (!db.objectStoreNames.contains("sessions")) {
+        const s = db.createObjectStore("sessions", { keyPath: "id" });
+        s.createIndex("byBook", "bookCode", { unique: false });
+      }
       if (!db.objectStoreNames.contains("comments")) {
-        const store = db.createObjectStore("comments", {
-          keyPath: "commentId",
-          autoIncrement: true
-        });
-        store.createIndex("bySessionId", "sessionId", { unique: false });
+        const s = db.createObjectStore("comments", { keyPath: "id", autoIncrement: true });
+        s.createIndex("bySession", "sessionId", { unique: false });
       }
     };
   });
 }
-
-export { openDb };

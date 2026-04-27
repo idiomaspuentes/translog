@@ -1,1 +1,0 @@
-- Versión del contrato: `CONTRACT_VERSION = 1`.
