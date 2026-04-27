@@ -1,0 +1,20 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.log
+
+# Local env
+.env
+.env.*
+!.env.example
+
+# Common build / deps (when you add code)
+node_modules/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
