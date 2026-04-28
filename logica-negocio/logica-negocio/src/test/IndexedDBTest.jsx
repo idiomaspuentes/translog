@@ -32,13 +32,12 @@ export function IndexedDBTest() {
       await saveBook({ code: bookCode, name: "ruth", langCode: selectedLangCode, version: bookVersion });
 
       const sessionId = Date.now(); 
-      const bookId = `${bookCode}-esp`;
       await saveSession({
         id: sessionId,
         title: sessionTitle,
         startDate: new Date().toISOString(),
         endDate: new Date().toISOString(),
-        bookId: bookId
+        bookId: `${bookCode}-${lang.lc}`
       });
 
       await saveComment(sessionId, {
@@ -54,7 +53,7 @@ export function IndexedDBTest() {
   };
 
   const listAll = async () => {
-    const bookId = `${bookCode}-esp`;
+    const bookId = `${bookCode}-${lang.lc}`;
     const sessions = await listSessionsByBookId(bookId);
     console.log("Sesiones en " + bookId + ":", sessions);
     setStatus(`Sesiones encontradas: ${sessions.length}. Mira la consola.`);
