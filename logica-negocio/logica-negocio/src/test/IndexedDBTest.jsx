@@ -4,18 +4,32 @@ import { saveBook, getBooks, getBook, addBookFromUSFM } from "../bookRepository"
 import { saveSession, listSessionsByBookId } from "../sessionRepository";
 import { saveComment, listCommentsBySession } from "../commentRepository";
 import { getFullExportJSON } from "../exportService";
+import { languages, getLanguageByCode } from "../config/languages.js";
 
 export function IndexedDBTest() {
   const [status, setStatus] = useState("");
   const [bookCode, setBookCode] = useState("RUT");
   const [sessionTitle, setSessionTitle] = useState("review_2026");
   const [bookVersion, setBookVersion] = useState("v1");
+  const [selectedLangCode, setSelectedLangCode] = useState("ha");
+  const [searchLang, setSearchLang] = useState("");
+
+  const lang = getLanguageByCode(selectedLangCode);
+
+  // Filtra idiomas visibles (solo cuando hay búsqueda)
+  const candidates = searchLang
+    ? languages.filter(
+        lang =>
+          lang.ln?.toLowerCase().includes(searchLang.toLowerCase()) ||
+          lang.lc?.toLowerCase().includes(searchLang.toLowerCase())
+      )
+    : [];
 
   const addFullTestData = async () => {
     try {
       setStatus("Guardando datos...");
-      await saveLanguage({ code: "esp", name: "e_419" });
-      await saveBook({ code: bookCode, name: "ruth", langCode: "esp", version: bookVersion });
+      await saveLanguage({ code: selectedLangCode, name: lang?.ln });
+      await saveBook({ code: bookCode, name: "ruth", langCode: selectedLangCode, version: bookVersion });
 
       const sessionId = Date.now(); 
       const bookId = `${bookCode}-esp`;
@@ -75,18 +89,66 @@ export function IndexedDBTest() {
   };
 
   const handleImportBook = async () => {
-  const response = await fetch("/usfm-3jn.txt");
-  const usfmText = await response.text();
+    const response = await fetch("/usfm-3jn.txt");
+    const usfmText = await response.text();
 
-  console.log("usfmText.length:", usfmText.length);
-  console.log("usfmText (primeros 100 caracteres):", usfmText.slice(0, 100));
+    console.log("usfmText.length:", usfmText.length);
+    console.log("usfmText (primeros 100 caracteres):", usfmText.slice(0, 100));
 
-  await addBookFromUSFM(usfmText, "esp");
-  alert("Libro importado y todo el USFM guardado en content");
-};
+    await addBookFromUSFM(usfmText, selectedLangCode);
+    alert("Libro importado y todo el USFM guardado en content");
+  };
 
   return (
     <div style={{ padding: 20 }}>
+
+     <h2>Idioma: {lang?.ln || selectedLangCode}</h2>
+
+      {/* Buscador sencillo (no <select> con miles de opciones) */}
+      <div style={{ margin: "12px 0" }}>
+        <input
+          type="text"
+          placeholder="Buscar idioma..."
+          value={searchLang}
+          onChange={e => setSearchLang(e.target.value)}
+          style={{ width: "240px", padding: "4px" }}
+        />
+
+        {searchLang && (
+          <div
+            style={{
+              maxHeight: "200px",
+              overflowY: "auto",
+              border: "1px solid #ccc",
+              marginTop: "4px",
+              fontSize: "14px",
+            }}
+          >
+            {candidates.length === 0 && (
+              <div style={{ padding: "4px", color: "#888" }}>
+                No encontrado.
+              </div>
+            )}
+            {candidates.slice(0, 50).map(lang => (
+              <div
+                key={lang.lc}
+                style={{
+                  padding: "4px 8px",
+                  cursor: "pointer",
+                  background: "#f9f9f9",
+                }}
+                onClick={() => {
+                  setSelectedLangCode(lang.lc);
+                  setSearchLang(""); // opcional: limpiar tras elegir
+                }}
+              >
+                {lang.ln} ({lang.lc})
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <h2>Prueba de Múltiples Sesiones</h2>
       
       <input value={bookCode} onChange={(e) => setBookCode(e.target.value)} placeholder="Book Code" />
@@ -100,7 +162,7 @@ export function IndexedDBTest() {
         Log Book Codes
       </button>
 
-      <button onClick={async () => console.log("Book:", await getBook(bookCode, "esp"))}>
+      <button onClick={async () => console.log("Book:", await getBook(bookCode, selectedLangCode))}>
         Log Book
       </button>
 
