@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { saveLanguage } from "../languageRepository";
-import { saveBook } from "../bookRepository";
-import { saveSession, listSessionsByBook } from "../sessionRepository";
+import { saveBook, getBooks, getBook, addBookFromUSFM } from "../bookRepository";
+import { saveSession, listSessionsByBookId } from "../sessionRepository";
 import { saveComment, listCommentsBySession } from "../commentRepository";
 import { getFullExportJSON } from "../exportService";
 
@@ -9,20 +9,22 @@ export function IndexedDBTest() {
   const [status, setStatus] = useState("");
   const [bookCode, setBookCode] = useState("RUT");
   const [sessionTitle, setSessionTitle] = useState("review_2026");
+  const [bookVersion, setBookVersion] = useState("v1");
 
   const addFullTestData = async () => {
     try {
       setStatus("Guardando datos...");
       await saveLanguage({ code: "esp", name: "e_419" });
-      await saveBook({ code: bookCode, name: "ruth", langCode: "esp" });
+      await saveBook({ code: bookCode, name: "ruth", langCode: "esp", version: bookVersion });
 
       const sessionId = Date.now(); 
+      const bookId = `${bookCode}-esp`;
       await saveSession({
         id: sessionId,
         title: sessionTitle,
         startDate: new Date().toISOString(),
         endDate: new Date().toISOString(),
-        bookCode: bookCode
+        bookId: bookId
       });
 
       await saveComment(sessionId, {
@@ -38,8 +40,9 @@ export function IndexedDBTest() {
   };
 
   const listAll = async () => {
-    const sessions = await listSessionsByBook(bookCode);
-    console.log("Sesiones en " + bookCode + ":", sessions);
+    const bookId = `${bookCode}-esp`;
+    const sessions = await listSessionsByBookId(bookId);
+    console.log("Sesiones en " + bookId + ":", sessions);
     setStatus(`Sesiones encontradas: ${sessions.length}. Mira la consola.`);
   };
 
@@ -59,7 +62,6 @@ export function IndexedDBTest() {
       const json = await getFullExportJSON();
       console.log("JSON Final:", JSON.stringify(json, null, 2));
     
-      // Descargar como archivo
       const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -72,16 +74,39 @@ export function IndexedDBTest() {
     }
   };
 
+  const handleImportBook = async () => {
+  const response = await fetch("/usfm-3jn.txt");
+  const usfmText = await response.text();
+
+  console.log("usfmText.length:", usfmText.length);
+  console.log("usfmText (primeros 100 caracteres):", usfmText.slice(0, 100));
+
+  await addBookFromUSFM(usfmText, "esp");
+  alert("Libro importado y todo el USFM guardado en content");
+};
+
   return (
     <div style={{ padding: 20 }}>
       <h2>Prueba de Múltiples Sesiones</h2>
       
       <input value={bookCode} onChange={(e) => setBookCode(e.target.value)} placeholder="Book Code" />
       <input value={sessionTitle} onChange={(e) => setSessionTitle(e.target.value)} placeholder="Título" />
+      <input value={bookVersion} onChange={(e) => setBookVersion(e.target.value)} placeholder="Versión (ej: v1)" />
       
       <button onClick={addFullTestData}>Guardar Nueva Sesión</button>
       <button onClick={listAll}>Listar Sesiones</button>
       <button onClick={handleExportJSON}>Exportar JSON</button>
+      <button onClick={async () => console.log("Book codes:", await getBooks())}>
+        Log Book Codes
+      </button>
+
+      <button onClick={async () => console.log("Book:", await getBook(bookCode, "esp"))}>
+        Log Book
+      </button>
+
+      <button onClick={handleImportBook}>
+        Import Rut USFM
+      </button>
       
       {/* Botón de ejemplo para verificar comentarios */}
       <button onClick={() => verifyComments(123456)}>Verificar Comentarios</button>

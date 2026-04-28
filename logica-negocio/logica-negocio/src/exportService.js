@@ -23,16 +23,20 @@ export async function getFullExportJSON() {
       books: books
         .filter(b => b.langCode === lang.code)
         .map(book => ({
+          id: book.id,
           name: book.name,
+          version: book.version || "",
           content: book.content || "",
           code: book.code,
+          langCode: book.langCode,
           sessions: sessions
-            .filter(s => s.bookCode === book.code)
+            .filter(s => s.bookId === book.id)
             .map(session => ({
               id: session.id,
               title: session.title,
               startDate: session.startDate,
               endDate: session.endDate,
+              bookId: session.bookId,
               reviews: groupCommentsByVerse(comments.filter(c => c.sessionId === session.id))
             }))
         }))

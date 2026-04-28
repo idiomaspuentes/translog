@@ -10,11 +10,11 @@ export async function saveSession(session) {
   });
 }
 
-export async function listSessionsByBook(bookCode) {
+export async function listSessionsByBookId(bookId) {
   const db = await openDb();
   return new Promise((resolve) => {
     const tx = db.transaction("sessions", "readonly");
-    const req = tx.objectStore("sessions").index("byBook").getAll(bookCode);
+    const req = tx.objectStore("sessions").index("byBook").getAll(bookId);
     req.onsuccess = () => resolve(req.result);
   });
 }

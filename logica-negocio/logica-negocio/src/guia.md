@@ -11,4 +11,6 @@ IndexedDB colecciones
 
   * agregar campo de version
   * hacer funcion de getBooks
+  * getbook(bookcode, lang) me devuelve todo los datos menos las sesiones o revisiones que tenga el libro
+  * addBook(usfm)
   
