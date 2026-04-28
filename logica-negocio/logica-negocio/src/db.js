@@ -1,5 +1,5 @@
 const DB_NAME = "translog";
-const DB_VERSION = 6;
+const DB_VERSION = 8;
 
 export function openDb() {
   return new Promise((resolve, reject) => {
@@ -25,10 +25,17 @@ export function openDb() {
       const sessions = db.createObjectStore("sessions", { keyPath: "id" });
       sessions.createIndex("byBook", "bookId", { unique: false });
 
-      if (!db.objectStoreNames.contains("comments")) {
-        const comments = db.createObjectStore("comments", { keyPath: "id", autoIncrement: true });
-        comments.createIndex("bySession", "sessionId", { unique: false });
+      if (db.objectStoreNames.contains("reviews")) {
+        db.deleteObjectStore("reviews");
       }
+      const reviews = db.createObjectStore("reviews", { keyPath: "id", autoIncrement: true });
+      reviews.createIndex("bySession", "sessionId", { unique: false });
+
+      if (db.objectStoreNames.contains("comments")) {
+        db.deleteObjectStore("comments");
+      }
+      const comments = db.createObjectStore("comments", { keyPath: "id", autoIncrement: true });
+      comments.createIndex("byReview", "reviewId", { unique: false });
     };
   });
 }

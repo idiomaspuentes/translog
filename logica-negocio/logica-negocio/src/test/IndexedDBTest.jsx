@@ -2,7 +2,8 @@ import { useState } from "react";
 import { saveLanguage } from "../languageRepository";
 import { saveBook, getBook, getBooks, getBookCodes, handleImportBook, archiveBook } from "../bookRepository";
 import { saveSession, listSessionsByBookId } from "../sessionRepository";
-import { saveComment, listCommentsBySession } from "../commentRepository";
+import { saveComment, listCommentsByReview } from "../commentRepository";
+import { saveReview } from "../reviewRepository";
 import { getFullExportJSON } from "../exportService";
 import { languages, getLanguageByCode } from "../config/languages.js";
 
@@ -31,19 +32,29 @@ export function IndexedDBTest() {
       await saveLanguage({ code: selectedLangCode, name: lang?.ln });
       await saveBook({ code: bookCode, name: "ruth", langCode: selectedLangCode, version: bookVersion });
 
-      const sessionId = Date.now(); 
+      const sessionId = Date.now();
       await saveSession({
         id: sessionId,
         title: sessionTitle,
         startDate: new Date().toISOString(),
         endDate: new Date().toISOString(),
-        bookId: `${bookCode}-${lang?.lc}`
+        bookId: `${bookCode}-${selectedLangCode}`
       });
 
-      await saveComment(sessionId, {
+      const review = await saveReview({
+        sessionId: sessionId,
+        text: "text",
+        reference: {
+          chapterStart: 1,
+          verseStart: 1,
+          chapterEnd: 1,
+          verseEnd: 22
+        }
+      });
+
+      await saveComment(review.id, {
         text: "Comentario para " + sessionTitle,
-        author: "elias",
-        verseKey: "RUT.1.1"
+        author: "elias"
       });
 
       setStatus(`✅ Guardado: Sesión ${sessionTitle} (ID: ${sessionId})`);
@@ -59,12 +70,11 @@ export function IndexedDBTest() {
     setStatus(`Sesiones encontradas: ${sessions.length}. Mira la consola.`);
   };
 
-  // ✅ AQUÍ ESTÁ EL USO DE listCommentsBySession
-  const verifyComments = async (sessionId) => {
+  const verifyComments = async (reviewId) => {
     try {
-      const comments = await listCommentsBySession(sessionId);
-      console.log("Comentarios de sesión " + sessionId + ":", comments);
-      setStatus(`✅ ${comments.length} comentarios encontrados en sesión ${sessionId}.`);
+      const comments = await listCommentsByReview(reviewId);
+      console.log("Comentarios de review " + reviewId + ":", comments);
+      setStatus(`✅ ${comments.length} comentarios encontrados en review ${reviewId}.`);
     } catch (err) {
       setStatus("❌ Error al verificar comentarios: " + err.message);
     }
@@ -167,7 +177,7 @@ export function IndexedDBTest() {
       </button>
       
       {/* Botón de ejemplo para verificar comentarios */}
-      <button onClick={() => verifyComments(123456)}>Verificar Comentarios</button>
+      <button onClick={() => verifyComments(1)}>Verificar Comentarios</button>
 
       <p><strong>Estado:</strong> {status}</p>
     </div>
