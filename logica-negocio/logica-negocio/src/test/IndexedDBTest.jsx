@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { saveLanguage } from "../languageRepository";
-import { saveBook, getBooks, getBook, handleImportBook, archiveBook } from "../bookRepository";
+import { saveBook, getBook, getBooks, getBookCodes, handleImportBook, archiveBook } from "../bookRepository";
 import { saveSession, listSessionsByBookId } from "../sessionRepository";
 import { saveComment, listCommentsBySession } from "../commentRepository";
 import { getFullExportJSON } from "../exportService";
@@ -146,7 +146,7 @@ export function IndexedDBTest() {
       <button onClick={addFullTestData}>Guardar Nueva Sesión</button>
       <button onClick={listAll}>Listar Sesiones</button>
       <button onClick={handleExportJSON}>Exportar JSON</button>
-      <button onClick={async () => console.log("Book codes:", await getBooks())}>
+      <button onClick={async () => console.log("Book codes:", await getBookCodes())}>
         Log Book Codes
       </button>
 
@@ -154,8 +154,12 @@ export function IndexedDBTest() {
         Log Book
       </button>
 
+      <button onClick={async () => console.log("Book:", await getBooks())}>
+        Log Books
+      </button>
+
       <button onClick={() => handleImportBook(lang.lc, lang.ln)}>
-        Import Rut USFM
+        Import USFM book
       </button>
 
       <button onClick={() => archiveBook(bookCode, lang.lc)}>

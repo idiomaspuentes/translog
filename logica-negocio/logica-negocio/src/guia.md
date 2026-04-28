@@ -15,6 +15,11 @@ IndexedDB colecciones
   * addBook(usfm)
   * hacer lista de idiomas disponibles y hacer select
   * cargar archivo para que el usfm sea asi 
+  *  eliminar libro archiveBook()
+  * crear logBooks();
+  * getBookSessions() junto con sus revisiones, pero de los comentarios solamente tener un contador de cuantos comentarios hay
 
-  -  eliminar libro archiveBook()
+
+  - funcion de busqueda de idiomas, todos los que hagan a un string, que devuelva nombre y codigo
+  - getReview(id (este es el session id), bookId)
   

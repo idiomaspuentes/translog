@@ -40,6 +40,7 @@ export async function getBook(bookCode, langCode) {
     const req = tx.objectStore("books").get(id);
     req.onsuccess = () => {
       if (!req.result) return reject(new Error(`Book not found: ${id}`));
+      if (req.result.active === false) return reject(new Error(`Book is archived: ${id}`));
       resolve(req.result);
     };
   });
@@ -50,7 +51,24 @@ export async function getBooks() {
   return new Promise((resolve) => {
     const tx = db.transaction("books", "readonly");
     const req = tx.objectStore("books").getAll();
-    req.onsuccess = () => resolve(req.result.map(b => b.code));
+    req.onsuccess = () => resolve(req.result
+        .filter(book => book.active !== false)
+        .map(book => {
+        const bookCopy = { ...book };
+        delete bookCopy.content;
+        return bookCopy;
+    }));
+  });
+}
+
+export async function getBookCodes() {
+  const db = await openDb();
+  return new Promise((resolve) => {
+    const tx = db.transaction("books", "readonly");
+    const req = tx.objectStore("books").getAll();
+    req.onsuccess = () => resolve(req.result
+      .filter(b => b.active !== false)
+      .map(b => b.code));
   });
 }
 
@@ -70,6 +88,7 @@ export async function addBookFromUSFM(usfmText, langCode) {
     name,
     langCode,
     content: usfmText,
+    active: true
   };
 
   const db = await openDb();
@@ -91,15 +110,26 @@ export async function addBookFromUSFM(usfmText, langCode) {
 }
 
 export async function requestUsfmFile() {
-    const response = await fetch("/usfm-3jn.txt");
-    const usfmText = await response.text();
-    return usfmText;
-};
+  return new Promise((resolve, reject) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".txt,.usfm";
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return reject(new Error("No file selected"));
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(file);
+    };
+    input.click();
+  });
+}
 
 export async function handleImportBook(langCode, langName) {
   await saveLanguage({ code: langCode, name: langName });
 
-  const usfmText = requestUsfmFile();
+  const usfmText = await requestUsfmFile();
 
   await addBookFromUSFM(usfmText, langCode);
 
