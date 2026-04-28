@@ -14,4 +14,7 @@ IndexedDB colecciones
   * getbook(bookcode, lang) me devuelve todo los datos menos las sesiones o revisiones que tenga el libro
   * addBook(usfm)
   * hacer lista de idiomas disponibles y hacer select
+  * cargar archivo para que el usfm sea asi 
+
+  -  eliminar libro archiveBook()
   

@@ -21,7 +21,7 @@ export async function getFullExportJSON() {
       code: lang.code,
       name: lang.name,
       books: books
-        .filter(b => b.langCode === lang.code)
+        .filter(b => (b.langCode === lang.code) && b.active)
         .map(book => ({
           id: book.id,
           name: book.name,

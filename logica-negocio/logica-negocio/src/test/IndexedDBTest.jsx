@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { saveLanguage } from "../languageRepository";
-import { saveBook, getBooks, getBook, addBookFromUSFM } from "../bookRepository";
+import { saveBook, getBooks, getBook, handleImportBook, archiveBook } from "../bookRepository";
 import { saveSession, listSessionsByBookId } from "../sessionRepository";
 import { saveComment, listCommentsBySession } from "../commentRepository";
 import { getFullExportJSON } from "../exportService";
@@ -37,7 +37,7 @@ export function IndexedDBTest() {
         title: sessionTitle,
         startDate: new Date().toISOString(),
         endDate: new Date().toISOString(),
-        bookId: `${bookCode}-${lang.lc}`
+        bookId: `${bookCode}-${lang?.lc}`
       });
 
       await saveComment(sessionId, {
@@ -85,17 +85,6 @@ export function IndexedDBTest() {
     } catch (err) {
       setStatus("❌ Error al exportar: " + err.message);
     }
-  };
-
-  const handleImportBook = async () => {
-    const response = await fetch("/usfm-3jn.txt");
-    const usfmText = await response.text();
-
-    console.log("usfmText.length:", usfmText.length);
-    console.log("usfmText (primeros 100 caracteres):", usfmText.slice(0, 100));
-
-    await addBookFromUSFM(usfmText, selectedLangCode);
-    alert("Libro importado y todo el USFM guardado en content");
   };
 
   return (
@@ -165,8 +154,12 @@ export function IndexedDBTest() {
         Log Book
       </button>
 
-      <button onClick={handleImportBook}>
+      <button onClick={() => handleImportBook(lang.lc, lang.ln)}>
         Import Rut USFM
+      </button>
+
+      <button onClick={() => archiveBook(bookCode, lang.lc)}>
+        Archive book (current lang selected)
       </button>
       
       {/* Botón de ejemplo para verificar comentarios */}
