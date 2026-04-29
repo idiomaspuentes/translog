@@ -13,12 +13,16 @@
     "@capacitor/android": "^8.3.1",
     "@capacitor/cli": "^8.3.1",
     "@capacitor/core": "^8.3.1",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "@capacitor/filesystem": "^6.0.2",
     "@translog/back": "file:../../back",
     "@translog/domain": "file:../../domain",
     "@translog/presentation": "file:../../presentation",
-    "@translog/ui": "file:../../ui"
+    "@translog/ui": "file:../../ui",
+    "capacitor-voice-recorder": "^7.0.6",
+    "file-saver": "^2.0.5",
+    "jszip": "^3.10.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

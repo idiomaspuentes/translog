@@ -43,6 +43,8 @@ if ($oldPath -notlike "*jdk-21\bin*") {
 #1
 /app/translog
 
+npm run build
+
 #2
 npx cap sync android
 

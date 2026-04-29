@@ -7,6 +7,7 @@
                 "name": "ruth",
                 "content": "",
                 "code": "RUT",
+                "version": "rvr1960",
                 "sessions": [
                     {
                         "id": 1,
@@ -14,6 +15,25 @@
                         "startDate": "2026-04-27T17:00:00Z",
                         "endDate": "2026-04-27T17:00:00Z",
                         "reviews": [
+                            {
+                                "text": "text",
+                                "reference": {
+                                    "chapterStart": 2,
+                                    "verseStart": 1,
+                                    "chapterEnd": 2,
+                                    "verseEnd": 10
+                                },
+                                "date": "2026-04-27T17:00:00Z",
+                                "comments": [
+                                    {
+                                        "date": "2026-04-27T17:00:00Z",
+                                        "author": "santiago",
+                                        "text": " es muy confuso este pasaje ",                                        
+                                        "type": "text",
+                                        "path": ""
+                                    }
+                                ]
+                            },
                             {
                                 "text": "text",
                                 "reference": {
@@ -27,9 +47,20 @@
                                     {
                                         "date": "2026-04-27T17:00:00Z",
                                         "author": "elias",
-                                        "text": " comment "
+                                        "text": " commese debe corregir esta parte ",
+                                        "type": "text",
+                                        "path": ""
+                                    },
+                                    {
+                                        "date": "2026-04-27T17:00:00Z",
+                                        "author": "elias",
+                                        "text": " comment ",
+                                        "type": "audio",
+                                        "path": "path/to/audio/file",                                        
+                                        "name": "session_audio_1777404071874.m4a"
                                     }
                                 ]
+                                
                             }
                         ]
                     }
