@@ -4,13 +4,13 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
+    "dev2": "vite dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "storybook": "storybook dev -p 6006",
+    "dev": "storybook dev -p 6006",
     "build:storybook": "storybook build -o storybook-static --disable-telemetry && rm -rf public/storybook && mkdir -p public/storybook && cp -r storybook-static/. public/storybook/"
   },
   "dependencies": {

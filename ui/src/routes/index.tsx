@@ -1,14 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PhoneFrame } from "@/components/bible/PhoneFrame";
-import { LanguageScreen } from "@/components/bible/LanguageScreen";
-import { BookListScreen } from "@/components/bible/BookListScreen";
-import { ChapterReadScreen } from "@/components/bible/ChapterReadScreen";
-import { ChapterReviewScreen } from "@/components/bible/ChapterReviewScreen";
-import { ThreadScreen } from "@/components/bible/ThreadScreen";
-import { NewCommentScreen } from "@/components/bible/NewCommentScreen";
-import { BookSessionsScreen } from "@/components/bible/BookSessionsScreen";
-import { ReadOnlyThreadScreen } from "@/components/bible/ReadOnlyThreadScreen";
-import { SettingsScreen } from "@/components/bible/SettingsScreen";
+import { LanguageScreen } from "@/components/bible/screens/LanguageScreen";
+import { BookListScreen } from "@/components/bible/screens/BookListScreen";
+import { ChapterReadScreen } from "@/components/bible/screens/ChapterReadScreen";
+import { ChapterReviewScreen } from "@/components/bible/screens/ChapterReviewScreen";
+import { ThreadScreen } from "@/components/bible/screens/ThreadScreen";
+import { NewCommentScreen } from "@/components/bible/screens/NewCommentScreen";
+import { BookSessionsScreen } from "@/components/bible/screens/BookSessionsScreen";
+import { ReadOnlyThreadScreen } from "@/components/bible/screens/ReadOnlyThreadScreen";
+import { SettingsScreen } from "@/components/bible/screens/SettingsScreen";
 
 export const Route = createFileRoute("/")({
   component: Index,

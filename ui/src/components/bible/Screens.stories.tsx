@@ -1,15 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { PhoneFrame } from "./PhoneFrame";
-import { LanguageScreen } from "./LanguageScreen";
-import { BookListScreen } from "./BookListScreen";
-import { BookSessionsScreen } from "./BookSessionsScreen";
-import { SessionRevisionsScreen } from "./SessionRevisionsScreen";
-import { ChapterReadScreen } from "./ChapterReadScreen";
-import { ChapterReviewScreen } from "./ChapterReviewScreen";
-import { ThreadScreen } from "./ThreadScreen";
-import { ReadOnlyThreadScreen } from "./ReadOnlyThreadScreen";
-import { NewCommentScreen } from "./NewCommentScreen";
-import { SettingsScreen } from "./SettingsScreen";
+import { LanguageScreen } from "./screens/LanguageScreen";
+import { BookListScreen } from "./screens/BookListScreen";
+import { BookSessionsScreen } from "./screens/BookSessionsScreen";
+import { SessionRevisionsScreen } from "./screens/SessionRevisionsScreen";
+import { ChapterReadScreen } from "./screens/ChapterReadScreen";
+import { ChapterReviewScreen } from "./screens/ChapterReviewScreen";
+import { ThreadScreen } from "./screens/ThreadScreen";
+import { ReadOnlyThreadScreen } from "./screens/ReadOnlyThreadScreen";
+import { NewCommentScreen } from "./screens/NewCommentScreen";
+import { SettingsScreen } from "./screens/SettingsScreen";
 
 const meta = {
   title: "Pantallas/Flujo completo",
