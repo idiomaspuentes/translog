@@ -5,7 +5,7 @@ import { saveSession, listSessionsByBookId } from "../sessionRepository";
 import { saveComment, listCommentsByReview } from "../commentRepository";
 import { saveReview } from "../reviewRepository";
 import { getFullExportJSON } from "../exportService";
-import { languages, getLanguageByCode } from "../config/languages.js";
+import { /* languages,  */getLanguageByCode, searchLanguages } from "../config/languages.js";
 
 export function IndexedDBTest() {
   const [status, setStatus] = useState("");
@@ -18,13 +18,7 @@ export function IndexedDBTest() {
   const lang = getLanguageByCode(selectedLangCode);
 
   // Filtra idiomas visibles (solo cuando hay búsqueda)
-  const candidates = searchLang
-    ? languages.filter(
-        lang =>
-          lang.ln?.toLowerCase().includes(searchLang.toLowerCase()) ||
-          lang.lc?.toLowerCase().includes(searchLang.toLowerCase())
-      )
-    : [];
+  const langCandidates = searchLanguages(searchLang);
 
   const addFullTestData = async () => {
     try {
@@ -122,12 +116,12 @@ export function IndexedDBTest() {
               fontSize: "14px",
             }}
           >
-            {candidates.length === 0 && (
+            {langCandidates.length === 0 && (
               <div style={{ padding: "4px", color: "#888" }}>
                 No encontrado.
               </div>
             )}
-            {candidates.slice(0, 50).map(lang => (
+            {langCandidates.slice(0, 50).map(lang => (
               <div
                 key={lang.lc}
                 style={{

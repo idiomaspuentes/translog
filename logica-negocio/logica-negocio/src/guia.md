@@ -19,6 +19,8 @@ IndexedDB colecciones
   * crear logBooks();
   * getBookSessions() junto con sus revisiones, pero de los comentarios solamente tener un contador de cuantos comentarios hay
   * getReview(id (este es el session id), bookId)
+  * funcion de busqueda de idiomas, todos los que hagan a un string, que devuelva nombre y codigo
 
-  - funcion de busqueda de idiomas, todos los que hagan a un string, que devuelva nombre y codigo
+  - 
+  - 
   
