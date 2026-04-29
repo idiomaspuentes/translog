@@ -145,3 +145,17 @@ export async function archiveBook(bookCode, langCode) {
     tx.onerror = () => reject(tx.error);
   });
 }
+
+export async function searchBooksByTitle(query) {
+  const db = await openDb();
+  const q = query.toLowerCase().trim();
+  return new Promise((resolve) => {
+    const tx = db.transaction("books", "readonly");
+    const req = tx.objectStore("books").getAll();
+    req.onsuccess = () => resolve(
+      req.result.filter(book =>
+        book.title?.toLowerCase().startsWith(q)
+      )
+    );
+  });
+}

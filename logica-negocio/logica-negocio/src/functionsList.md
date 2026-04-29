@@ -19,21 +19,27 @@
 *   getBookCodes(): Obtiene una lista de todos los códigos de los libros activos.
 *   handleImportBook(langCode, langName): Agrega un libro a la DB a partir de un archivo USFM.
 *   archiveBook(bookCode, langCode): Archiva un libro y de esa forma el libro no es borrado, pero tampoco exportado ni se muestra en la app junto con los libros activos.
+*   searchBooksByTitle(Query):  Filtra los books que empiecen por el Query. Tanto por los códigos como nombres.
   
 ## Sesión
 
-*   saveSession({ id, title, startDate, endDate, bookId }): Guarda una nueva sesión en la DB.
+*   getSession(sessionId): Trae una sesion con los reviews y todo pero solamente el numero de comentarios.
+*   createSession(bookId): Crea una sesion vacia solamente con id y start date.
+*   closeSession(sessionId): Asigna el enddate a la sesion.
+*   saveSession({ bookId, title, startDate, endDate, bookId }): Guarda una nueva sesión en la DB. (mejor para importar)
 *   listSessionsByBookId(bookId): Obtiene una lista de sesiones por un libro específico.
+*   searchSessionsByTitle(query):  Filtra las sesiones que incluyan el Query.
   
 ##  Revisiones
 
+*   createReview(sessionId, reviewData): Crea un review vacio con id o con los datos que le mandes.
 *   saveReview({ sessionId, text, reference: { chapterStart, verseStart, chapterEnd, verseEnd } }): Guarda una nueva review en la DB.
 *   listReviewsBySession(sessionId): Obtiene una lista de revisiones por una sesión específica.
 *   getReview(reviewId): Obtiene una review por su id.
   
 ## Comentarios
 
-*   saveComment(id, { text, author }): Guarda un nuevo comentario en la DB.
+*   saveComment(reviewId, { text, author }): Guarda un nuevo comentario en la DB.
 *   listCommentsByReview(reviewId): Obtiene una lista de comentarios por una revisión específica.
   
 ## Exportar
