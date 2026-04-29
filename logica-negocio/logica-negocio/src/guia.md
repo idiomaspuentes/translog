@@ -21,6 +21,6 @@ IndexedDB colecciones
   * getReview(id (este es el session id), bookId)
   * funcion de busqueda de idiomas, todos los que hagan a un string, que devuelva nombre y codigo
 
-  - 
+  - autocompletado para las sesiones
   - 
   

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { saveLanguage } from "../languageRepository";
-import { saveBook, getBook, getBooks, getBookCodes, handleImportBook, archiveBook } from "../bookRepository";
+import { saveBook, getBook, getBooks, getBookCodes, handleImportBook, archiveBook, listBooksByLang } from "../bookRepository";
 import { saveSession, listSessionsByBookId } from "../sessionRepository";
 import { saveComment, listCommentsByReview } from "../commentRepository";
 import { saveReview } from "../reviewRepository";
@@ -160,6 +160,10 @@ export function IndexedDBTest() {
 
       <button onClick={async () => console.log("Book:", await getBooks())}>
         Log Books
+      </button>
+
+      <button onClick={async () => console.log("Book:", await listBooksByLang(lang.lc))}>
+        List Books by lang
       </button>
 
       <button onClick={() => handleImportBook(lang.lc, lang.ln)}>

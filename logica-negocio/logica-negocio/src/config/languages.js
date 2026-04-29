@@ -9,8 +9,8 @@ export const searchLanguages = (query) => {
   const q = query.toLowerCase().trim();
   if (!q) return [];
   return languages.filter(lang =>
-    lang.lc?.toLowerCase().includes(q) ||
-    lang.ln?.toLowerCase().includes(q) ||
-    lang.ang?.toLowerCase().includes(q)
+    lang.lc?.toLowerCase().startsWith(q) ||
+    lang.ln?.toLowerCase().startsWith(q) ||
+    lang.ang?.toLowerCase().startsWith(q)
   );
 };

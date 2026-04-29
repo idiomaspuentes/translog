@@ -1,16 +1,7 @@
 import { openDb } from "./db.js";
 import { extractBookMetadata } from "./usfmParser.js";
 import { saveLanguage } from "./languageRepository.js";
-
-
-async function getAll(storeName) {
-  const db = await openDb();
-  return new Promise((resolve) => {
-    const tx = db.transaction(storeName, "readonly");
-    const req = tx.objectStore(storeName).getAll();
-    req.onsuccess = () => resolve(req.result);
-  });
-}
+import { getAll } from "./config/helperFunctions.js";
 
 export async function saveBook(book) {
   const db = await openDb();
@@ -72,7 +63,7 @@ export async function getBookCodes() {
   });
 }
 
-export async function addBookFromUSFM(usfmText, langCode) {
+async function addBookFromUSFM(usfmText, langCode) {
   const { code, name } = extractBookMetadata(usfmText);
 
   if (!code) {
@@ -109,7 +100,7 @@ export async function addBookFromUSFM(usfmText, langCode) {
   });
 }
 
-export async function requestUsfmFile() {
+async function requestUsfmFile() {
   return new Promise((resolve, reject) => {
     const input = document.createElement("input");
     input.type = "file";

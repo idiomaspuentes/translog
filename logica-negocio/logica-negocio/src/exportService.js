@@ -1,13 +1,4 @@
-import { openDb } from "./db.js";
-
-async function getAll(storeName) {
-  const db = await openDb();
-  return new Promise((resolve) => {
-    const tx = db.transaction(storeName, "readonly");
-    const req = tx.objectStore(storeName).getAll();
-    req.onsuccess = () => resolve(req.result);
-  });
-}
+import { getAll } from "./config/helperFunctions.js";
 
 export async function getFullExportJSON() {
   const languages = await getAll("languages");
