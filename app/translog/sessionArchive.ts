@@ -1,55 +1,14 @@
 import JSZip from 'jszip';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
-
-/** 
- * Interfaces basadas en contract.json 
- */
-export interface Comment {
-  date: string;
-  author: string;
-  text: string;
-  type: string;
-  path: string;
-  name: string;
-}
+import { Language, Book, Session, Review, Comment} from './src/lib/types/types';
+import { jsPDF } from "jspdf";
+import * as html2canvas from 'html2canvas';
 
 
-
-export interface Review {
-  text: string;
-  reference: {
-    chapterStart: number;
-    verseStart: number;
-    chapterEnd: number;
-    verseEnd: number;
-  };
-  date: string;
-  comments: Comment[];
-}
-
-export interface Session {
-  id: number;
-  title: string;
-  startDate: string;
-  endDate: string;
-  reviews: Review[];
-}
-
-export interface Book {
-  name: string;
-  content: string;
-  code: string;
-  version: string;
-  sessions: Session[];
-}
 
 export interface ContractData {
-  language: {
-    code: string;
-    name: string;
-    books: Book[];
-  };
+  language: Language;
 }
 
 /**
@@ -193,58 +152,141 @@ export function generateMarkdownContent(data: ContractData): string {
   return md;
 }
 
+
+export const generateTranslogPDF = async (data:Language) => {
+  const lang = data;
+  
+  // 1. Crear un contenedor oculto para el HTML
+  const container = document.createElement('div');
+  container.style.width = '700px';
+  container.style.padding = '40px';
+  container.style.fontFamily = 'Arial, sans-serif';
+  container.style.color = '#333';
+  container.style.lineHeight = '1.6';
+
+  // 2. Construir el contenido HTML (basado en tu lógica de Markdown)
+  let htmlContent = `
+    <h1 style="color: #2c3e50; border-bottom: 2px solid #34495e;">Reporte de Translog</h1>
+    <p><strong>Idioma:</strong> ${lang.name} (${lang.code})</p>
+    <hr>
+  `;
+
+  lang.books.forEach(book => {
+    htmlContent += `
+      <div style="margin-top: 30px; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+        <h2 style="margin: 0; color: #16a085;">LIBRO: ${book.name.toUpperCase()} [${book.code}]</h2>
+      </div>
+    `;
+
+    book.sessions.forEach(session => {
+      htmlContent += `
+        <div style="margin-left: 20px; border-left: 4px solid #3498db; padding-left: 15px; margin-top: 20px;">
+          <h3 style="color: #2980b9;">Sesión ${session.id}: ${session.title}</h3>
+          <p style="font-size: 0.9rem;">
+            <strong>Inicio:</strong> ${new Date(session.startDate).toLocaleString()} | 
+            <strong>Fin:</strong> ${new Date(session.endDate).toLocaleString()}
+          </p>
+        </div>
+      `;
+
+      session.reviews.forEach((review, rIdx) => {
+        const ref = review.reference;
+        htmlContent += `
+          <div style="margin-left: 40px; margin-top: 15px; background: #fff; border: 1px solid #eee; padding: 10px;">
+            <h4 style="margin-top: 0;">Revisión ${rIdx + 1}</h4>
+            <p style="background: #eee; padding: 5px; font-style: italic;">
+              <strong>Referencia:</strong> Cap. ${ref.chapterStart}:${ref.verseStart} - Cap. ${ref.chapterEnd}:${ref.verseEnd}
+            </p>
+            <p>${review.text}</p>
+        `;
+
+        if (review.comments.length > 0) {
+          htmlContent += `<p><strong>Comentarios:</strong></p><ul style="font-size: 0.85rem;">`;
+          review.comments.forEach(comment => {
+            htmlContent += `
+              <li>
+                <strong>${comment.author}</strong> (${new Date(comment.date).toLocaleDateString()}): 
+                ${comment.text}
+              </li>`;
+          });
+          htmlContent += `</ul>`;
+        }
+        htmlContent += `</div>`; // Cerrar revisión
+      });
+    });
+  });
+
+  container.innerHTML = htmlContent;
+  document.body.appendChild(container);
+
+  // 3. Convertir HTML a Canvas y luego a PDF
+  try {
+    const canvas = await html2canvas(container, { scale: 2 });
+    const imgData = canvas.toDataURL('image/png');
+    
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    
+    // 4. Descargar o Guardar
+    pdf.save(`Reporte_Translog_${lang.code}.pdf`);
+    
+  } catch (error) {
+    console.error("Error generando PDF:", error);
+  } finally {
+    document.body.removeChild(container); // Limpiar el DOM
+  }
+};
+
 /**
  * Crea un archivo ZIP con la estructura: idioma/libro/sesion/revisiones/comentarios
  * e incluye un Markdown legible y el JSON original.
  */
-export async function downloadProjectAsZip(data: ContractData, filename: string, audioList: { name: string, uri: string, path: string }[]): Promise<void> {
+export async function downloadProjectAsZip(
+  data: ContractData, 
+  filename: string, 
+  audioList: { name: string, uri: string, path: string }[]
+): Promise<void> {
   const zip = new JSZip();
   const langCode = data.language.code;
   
-  // Raíz del idioma
   const langFolder = zip.folder(langCode);
 
   for (const book of data.language.books) {
-    // Capa de Libro
     const bookFolder = langFolder?.folder(book.code);
     
     for (const session of book.sessions) {
-      // Capa de Sesión
       const sessionFolder = bookFolder?.folder(`sesion_${session.id}`);
       const reviewsFolder = sessionFolder?.folder("revisiones");
 
       let rIdx = 1;
       for (const review of session.reviews) {
-        // Capa de Revisión
         const currentReviewFolder = reviewsFolder?.folder(`revisión_${rIdx++}`);
-        // Guardamos la información de la revisión 
         currentReviewFolder?.file("revision.json", JSON.stringify(review, null, 2));
         
         if (review.comments.length > 0)  {
           let cIdx = 1;
           for (const comment of review.comments) {
             if (comment.type === 'audio') {
-              
-          const audioFolder = currentReviewFolder?.folder("audios");
-              // Guardar JSON del comentario
+              const audioFolder = currentReviewFolder?.folder("audios");
               audioFolder?.file(`audio_${cIdx}.json`, JSON.stringify(comment, null, 2));
               
-              // Si el comentario tiene un path, intentamos meter el binario real .m4a en el ZIP.
-              // Buscamos el audio en la lista proporcionada para asegurar que existe y obtener su path.
-              
-                try {
-                  const audioEntry = audioList.find(audio => audio.name === comment.name);
-                  if (audioEntry) {
-                    const file = await Filesystem.readFile({ path: audioEntry.path, directory: Directory.Data });
-                    const binaryName = audioEntry.name; // Usamos el nombre del archivo directamente del audioEntry
-                    audioFolder?.file(binaryName, file.data, { base64: true });
-                  } else {
-                    console.warn(`Audio no encontrado en la lista para el path: ${comment.path}`);
-                  }
-                } catch (e: any) { // Añadir tipo para el error
-                  console.warn("No se pudo adjuntar el audio al ZIP:", comment.path);
+              try {
+                const audioEntry = audioList.find(audio => audio.name === comment.name);
+                if (audioEntry) {
+                  // Leemos el audio desde el almacenamiento de Capacitor (Directory.Data)
+                  const file = await Filesystem.readFile({ 
+                    path: audioEntry.path, 
+                    directory: Directory.Data 
+                  });
+                  audioFolder?.file(audioEntry.name, file.data, { base64: true });
                 }
-              
+              } catch (e: any) {
+                console.warn("No se pudo adjuntar el audio al ZIP:", comment.path);
+              }
               cIdx++;
             }
           }
@@ -253,11 +295,24 @@ export async function downloadProjectAsZip(data: ContractData, filename: string,
     }
   }
 
-  // Añadir archivos de ayuda en la raíz del ZIP
-  zip.file("LECTURA_HUMANA.md", generateMarkdownContent(data));
+  // --- GENERACIÓN DE REPORTES EN MEMORIA ---
+  
+  // 1. Markdown (Sincrónico)
+  //ip.file("LECTURA_HUMANA.md", generateMarkdownContent(data));
+
+  // 2. PDF (Asincrónico - Esperamos el Blob generado por html2canvas + jsPDF)
+  try {
+    const pdfBlob = await generateTranslogPDF(data.language);
+    // Agregamos el binario del PDF directamente a la raíz del ZIP
+    zip.file("LECTURA_HUMANA.pdf", pdfBlob);
+  } catch (pdfError) {
+    console.error("Error al incluir el PDF en el paquete ZIP:", pdfError);
+  }
+
+  // 3. Metadata del contrato
   zip.file("contract.json", JSON.stringify(data, null, 2));
 
-  // Generar y descargar
+  // --- FINALIZACIÓN Y DESCARGA ---
   const blob = await zip.generateAsync({ type: "blob" });
   await downloadBlobCompatible(blob, `${filename}.zip`);
 }
