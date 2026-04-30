@@ -14,6 +14,7 @@
     "@capacitor/cli": "^8.3.1",
     "@capacitor/core": "^8.3.1",
     "@capacitor/filesystem": "^6.0.2",
+    "@tanstack/react-router": "^1.168.26",
     "@translog/back": "file:../../back",
     "@translog/domain": "file:../../domain",
     "@translog/presentation": "file:../../presentation",
@@ -26,6 +27,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@tanstack/router-cli": "^1.166.38",
+    "@tanstack/router-plugin": "^1.167.29",
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

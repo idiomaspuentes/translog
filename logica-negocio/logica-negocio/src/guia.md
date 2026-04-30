@@ -27,3 +27,4 @@ IndexedDB colecciones
   * autocompletado para libros 
   * exportSession() exporta una sesion en JSON
   * importSessions(json, libro) importa una o varias sesiones desde JSON. Crear el libro sin contenido para solo leer contenido de sesiones.
+
