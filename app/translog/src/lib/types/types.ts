@@ -5,7 +5,11 @@ export interface Comment {
   date: string; // ISO string: "2026-04-30T16:38:34.131Z"
   author: string;
   text: string;
+  type: string; // "text" o "audio"
+  name?: string; // Solo para tipo "audio", el nombre del archivo de audio
+  path?: string; // Solo para tipo "audio", el path del archivo de audio
 }
+
 
 export interface ChapterRef {
   chapterStart: number;

@@ -69,3 +69,26 @@ export async function getReview(reviewId) {
     };
   });
 }
+
+export async function closeReview(reviewId) {
+  const db = await openDb();
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("reviews", "readwrite");
+    const store = tx.objectStore("reviews");
+    const req = store.get(reviewId);
+
+    req.onsuccess = () => {
+      const review = req.result;
+      if (!review) return reject(new Error("Review not found"));
+
+      const updated = { ...review, endDate: new Date().toISOString() };
+      const reqPut = store.put(updated);
+
+      reqPut.onsuccess = () => resolve(updated);
+      reqPut.onerror = () => reject(reqPut.error);
+    };
+
+    req.onerror = () => reject(req.error);
+  });
+}
