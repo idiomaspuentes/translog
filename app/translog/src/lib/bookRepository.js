@@ -154,7 +154,7 @@ export async function searchBooksByTitle(query) {
     const req = tx.objectStore("books").getAll();
     req.onsuccess = () => resolve(
       req.result.filter(book =>
-        book.title?.toLowerCase().startsWith(q)
+        book.name?.toLowerCase().startsWith(q)
       )
     );
   });

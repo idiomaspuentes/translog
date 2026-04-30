@@ -23,5 +23,11 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/ui/routes",
+    "src/ui/lib",
+    "src/ui/components/ui",
+    "src/ui/**/*.stories.tsx"
+  ]
 }

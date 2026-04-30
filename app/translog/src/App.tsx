@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
-import './App.css';
+// import './App.css';
 import ArchiveManager from '.././ArchiveManager'; // Importa el nuevo componente
 import { AudioRecorderService } from '../AudioRecorder';
 import type { RecordingResult } from '../AudioRecorder';

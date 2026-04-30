@@ -1,58 +1,49 @@
 /* eslint-disable react-refresh/only-export-components */
 // @refresh reset
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
-import { searchLanguages } from '../lib/config/languages'
+import { languages, searchLanguages } from '../lib/config/languages'
 import { saveLanguage } from '../lib/languageRepository'
+import { LanguageScreen, type Language } from '../ui/components/bible/screens/LanguageScreen'
 
 export const Route = createFileRoute('/onboarding')({
   component: OnboardingPage,
 })
 
+/** Maps the raw language-data shape { lc, ln, ang? } to the UI Language type. */
+function toUiLanguage(l: { lc: string; ln: string; ang?: string }): Language {
+  return {
+    flag: l.lc,          // language code used as identifier (no emoji data in source)
+    name: l.ang ?? l.ln, // prefer English name, fall back to native
+    native: l.ln,
+  }
+}
+
+/**
+ * Short curated list shown before the user types anything.
+ * The full catalogue (~7000 languages) is available via the search box.
+ */
+const FEATURED_CODES = ['es', 'en', 'pt', 'fr', 'ar', 'ru', 'de', 'it', 'cmn', 'hi', 'sw', 'id', 'nl', 'ko', 'ja', 'tr']
+const featuredLanguages: Language[] = (FEATURED_CODES
+  .map(code => (languages as { lc: string; ln: string; ang?: string }[]).find(l => l.lc === code))
+  .filter(l => l != null) as { lc: string; ln: string; ang?: string }[])
+  .map(toUiLanguage)
+
 function OnboardingPage() {
   const navigate = useNavigate()
-  const [langSearch, setLangSearch] = useState('')
-  const [selected, setSelected] = useState<{ lc: string; ln: string } | null>(null)
 
-  const candidates = searchLanguages(langSearch)
-
-  const handleSelect = (lang: { lc: string; ln: string }) => {
-    setSelected(lang)
-    setLangSearch('')
-  }
-
-  const handleConfirm = async () => {
-    if (!selected) return
-    await saveLanguage({ code: selected.lc, name: selected.ln })
-    localStorage.setItem('appLang', selected.lc)
+  const handleContinue = async (lang: Language) => {
+    await saveLanguage({ code: lang.flag, name: lang.native })
+    localStorage.setItem('appLang', lang.flag)
     navigate({ to: '/books' })
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Bienvenido</h1>
-      <p>Selecciona el idioma principal de la app para continuar.</p>
-      <input
-        placeholder="Buscar idioma..."
-        value={langSearch}
-        onChange={e => setLangSearch(e.target.value)}
-        autoFocus
+    <div className="h-full">
+      <LanguageScreen
+        languages={featuredLanguages}
+        onSearchChange={(q) => searchLanguages(q).map(toUiLanguage)}
+        onContinue={handleContinue}
       />
-      {langSearch && (
-        <ul>
-          {candidates.slice(0, 20).map(lang => (
-            <li key={lang.lc} style={{ cursor: 'pointer' }} onClick={() => handleSelect(lang)}>
-              {lang.ln} ({lang.lc})
-            </li>
-          ))}
-        </ul>
-      )}
-      {selected && (
-        <div style={{ marginTop: 16 }}>
-          <p>Seleccionado: <strong>{selected.ln} ({selected.lc})</strong></p>
-          <button onClick={handleConfirm}>Confirmar y continuar</button>
-        </div>
-      )}
     </div>
   )
 }

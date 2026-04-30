@@ -1,8 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-refresh/only-export-components */
 // @refresh reset
-import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
-import { listBooksByLang } from '../lib/bookRepository'
+import { useCallback } from 'react'
+import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
+import { listBooksByLang, handleImportBook } from '../lib/bookRepository'
+import { getLanguageByCode } from '../lib/config/languages'
+import { BookListScreen } from '../ui/components/bible/screens/BookListScreen'
+import type { Book } from '../ui/components/bible/screens/BookListScreen'
 
 export const Route = createFileRoute('/books/')({
   loader: () => {
@@ -14,24 +17,31 @@ export const Route = createFileRoute('/books/')({
 })
 
 function BooksPage() {
-  const books = Route.useLoaderData()
-  const langCode = localStorage.getItem('appLang')
+  const rawBooks = Route.useLoaderData()
+  const navigate = useNavigate()
   const router = useRouter()
 
+  const langCode = localStorage.getItem('appLang') ?? ''
+
+  const books: Book[] = rawBooks.map((b: { id: string; name: string }) => ({
+    id: b.id,
+    name: b.name,
+  }))
+
+  const handleAddBook = useCallback(async () => {
+    const lang = getLanguageByCode(langCode)
+    await handleImportBook(langCode, lang?.ang ?? lang?.ln ?? langCode)
+    await router.invalidate()
+  }, [langCode, router])
+
   return (
-    <div style={{ padding: 20 }}>
-      <button onClick={() => router.history.back()}>← Volver</button>
-      <h1>Libros — {langCode}</h1>
-      <button onClick={() => router.invalidate()}>Refrescar</button>
-      <ul>
-        {books.map((book: any) => (
-          <li key={book.id}>
-            <Link to="/books/$bookId" params={{ bookId: book.id }}>
-              {book.name} ({book.code})
-            </Link>
-          </li>
-        ))}
-      </ul>
+    <div className="h-full">
+      <BookListScreen
+        books={books}
+        onSelectBook={(book) => navigate({ to: '/books/$bookId', params: { bookId: book.id } })}
+        onAddBook={handleAddBook}
+        onOpenSettings={() => navigate({ to: '/settings' })}
+      />
     </div>
   )
 }

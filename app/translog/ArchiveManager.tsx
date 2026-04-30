@@ -55,8 +55,8 @@ const onStatus = (message: string) => {
     <div style={{ padding: '20px', border: '1px solid #ddd', borderRadius: '8px', margin: '10px' }}>
       <h2 style={{ marginTop: 0 }}>Gestión de Archivos</h2>
       <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-        <button onClick={handleImport} style={{ cursor: 'pointer', padding: '8px 16px' }}>Importar ZIP</button>
-        <button onClick={async () => handleExport (await loadAudios())} style={{ cursor: 'pointer', padding: '8px 16px' }}>Exportar Proyecto (ZIP)</button>
+        <button onClick={() => handleImport(onStatus)} style={{ cursor: 'pointer', padding: '8px 16px' }}>Importar ZIP</button>
+        <button onClick={async () => handleExport(await loadAudios(), dataJson as unknown as ContractData, onStatus)} style={{ cursor: 'pointer', padding: '8px 16px' }}>Exportar Proyecto (ZIP)</button>
       </div>
       {status && <p style={{ color: '#555', fontSize: '0.9rem' }}>{status}</p>}
     </div>

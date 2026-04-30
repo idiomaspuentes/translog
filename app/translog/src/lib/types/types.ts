@@ -9,9 +9,9 @@ export interface Comment {
 
 export interface ChapterRef {
   chapterStart: number;
-  verseStart:  number: number;
-  chapterEnd:    number;
-  verseEnd:      number;
+  verseStart: number;
+  chapterEnd: number;
+  verseEnd: number;
 }
 
 export interface Review {
@@ -34,7 +34,7 @@ export interface Book {
   langCode: string;
   name: string;
   version: string;
-  content: string;
+  content: string; //USFM string format.
   sessions: Session[];
 }
 

@@ -9,7 +9,7 @@ export const Route = createRootRoute({
     }
   },
   component: () => (
-    <div style={{ minHeight: '100vh' }}>
+    <div className="h-full">
       <Outlet />
     </div>
   ),

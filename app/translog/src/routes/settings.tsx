@@ -1,37 +1,78 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-refresh/only-export-components */
-// @refresh resets
+// @refresh reset
+import { useCallback, useRef } from 'react'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { useState } from 'react'
-import { searchLanguages } from '../lib/config/languages'
+import { languages, searchLanguages } from '../lib/config/languages'
+import { saveLanguage } from '../lib/languageRepository'
 import { getFullExportJSON } from '../lib/exportService'
 import { importSessions } from '../lib/importService'
+import { SettingsScreen } from '../ui/components/bible/screens/SettingsScreen'
+import type {
+  LanguageOption,
+  FontSizeOption,
+  UserPreferences,
+} from '../ui/components/bible/screens/SettingsScreen'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsPage,
 })
 
+type RawLang = { lc: string; ln: string; ang?: string }
+
+function toUiLanguage(l: RawLang): LanguageOption {
+  return {
+    flag: l.lc,
+    name: l.ang ?? l.ln,
+    native: l.ln,
+  }
+}
+
+const FEATURED_CODES = [
+  'es', 'en', 'pt', 'fr', 'ar', 'ru', 'de', 'it', 'cmn', 'hi', 'sw', 'id',
+]
+
+const featuredLanguages: LanguageOption[] = FEATURED_CODES
+  .map(code => (languages as RawLang[]).find(l => l.lc === code))
+  .filter((l): l is RawLang => l != null)
+  .map(toUiLanguage)
+
+const FONT_SIZES: FontSizeOption[] = [
+  { label: 'Pequeño',    sample: 'Aa', size: 'text-sm'  },
+  { label: 'Mediano',    sample: 'Aa', size: 'text-base' },
+  { label: 'Grande',     sample: 'Aa', size: 'text-lg'  },
+  { label: 'Muy grande', sample: 'Aa', size: 'text-xl'  },
+]
+
 function SettingsPage() {
   const router = useRouter()
-  const [langSearch, setLangSearch] = useState('')
-  const [fontSize, setFontSize] = useState(
-    () => localStorage.getItem('appFontSize') || 'medium'
-  )
 
-  const candidates = searchLanguages(langSearch)
+  const langCode = localStorage.getItem('appLang') ?? ''
+  const langRaw = (languages as RawLang[]).find(l => l.lc === langCode)
+  const currentLangName = langRaw ? (langRaw.ang ?? langRaw.ln) : ''
+  const currentFontSize = localStorage.getItem('appFontSize') ?? 'Mediano'
 
-  const handleSelectLang = (lc: string) => {
-    localStorage.setItem('appLang', lc)
-    setLangSearch('')
-    router.invalidate()
-  }
+  /** Tracks the language code for whichever language the user last selected. */
+  const selectedLang = useRef<{ code: string; name: string }>({
+    code: langCode,
+    name: currentLangName,
+  })
 
-  const handleFontSize = (size: string) => {
-    localStorage.setItem('appFontSize', size)
-    setFontSize(size)
-  }
+  const handleChangeLanguage = useCallback((name: string) => {
+    const found = (languages as RawLang[]).find(l => (l.ang ?? l.ln) === name)
+    if (found) selectedLang.current = { code: found.lc, name }
+  }, [])
 
-  const handleExport = async () => {
+  const handleSave = useCallback(async (prefs: UserPreferences) => {
+    const { code, name } = selectedLang.current
+    if (code) {
+      localStorage.setItem('appLang', code)
+      await saveLanguage({ code, name })
+    }
+    localStorage.setItem('appFontSize', prefs.fontSize)
+    router.history.back()
+  }, [router])
+
+  const handleExport = useCallback(async () => {
     try {
       const json = await getFullExportJSON()
       const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' })
@@ -40,18 +81,19 @@ function SettingsPage() {
       a.href = url
       a.download = 'data_export.json'
       a.click()
+      URL.revokeObjectURL(url)
     } catch (err) {
       console.error('Error al exportar:', err)
     }
-  }
+  }, [])
 
-  const handleImport = async () => {
+  const handleImport = useCallback(async () => {
     try {
       const input = document.createElement('input')
       input.type = 'file'
       input.accept = '.json'
-      input.onchange = async (e: any) => {
-        const file = e.target.files[0]
+      input.onchange = async (e: Event) => {
+        const file = (e.target as HTMLInputElement).files?.[0]
         if (!file) return
         const text = await file.text()
         const parsed = JSON.parse(text)
@@ -62,44 +104,23 @@ function SettingsPage() {
     } catch (err) {
       console.error('Error al importar:', err)
     }
-  }
+  }, [router])
 
   return (
-    <div style={{ padding: 20 }}>
-      <button onClick={() => router.history.back()}>← Volver</button>
-      <h1>Configuración</h1>
-
-      <h2>Idioma</h2>
-      <p>Actual: {localStorage.getItem('appLang') || 'No definido'}</p>
-      <input
-        placeholder="Buscar idioma..."
-        value={langSearch}
-        onChange={e => setLangSearch(e.target.value)}
+    <div className="h-full">
+      <SettingsScreen
+        languages={featuredLanguages}
+        fontSizes={FONT_SIZES}
+        initialPreferences={{ language: currentLangName, fontSize: currentFontSize }}
+        onSearchLanguages={(q) =>
+          (searchLanguages(q) as RawLang[]).map(toUiLanguage)
+        }
+        onChangeLanguage={handleChangeLanguage}
+        onSave={handleSave}
+        onExportAllData={handleExport}
+        onImportAllData={handleImport}
+        onBack={() => router.history.back()}
       />
-      {langSearch && (
-        <ul>
-          {candidates.slice(0, 20).map((lang: any) => (
-            <li key={lang.lc} style={{ cursor: 'pointer' }} onClick={() => handleSelectLang(lang.lc)}>
-              {lang.ln} ({lang.lc})
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <h2>Tamaño de fuente</h2>
-      {['small', 'medium', 'large'].map(size => (
-        <button
-          key={size}
-          onClick={() => handleFontSize(size)}
-          style={{ fontWeight: fontSize === size ? 'bold' : 'normal', marginRight: 8 }}
-        >
-          {size}
-        </button>
-      ))}
-
-      <h2>Datos</h2>
-      <button onClick={handleExport}>Exportar JSON</button>
-      <button onClick={handleImport}>Importar JSON</button>
     </div>
   )
 }
