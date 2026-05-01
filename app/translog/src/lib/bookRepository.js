@@ -127,7 +127,6 @@ export async function handleImportBook(langCode, langName) {
   const books = await getAll("books");
   console.log("books (después de importar):", books);
 
-  alert("Libro importado y todo el USFM guardado en content");
 };
 
 export async function archiveBook(bookCode, langCode) {
