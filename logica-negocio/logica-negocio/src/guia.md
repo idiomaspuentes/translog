@@ -11,4 +11,20 @@ IndexedDB colecciones
 
   * agregar campo de version
   * hacer funcion de getBooks
-  
+  * getbook(bookcode, lang) me devuelve todo los datos menos las sesiones o revisiones que tenga el libro
+  * addBook(usfm)
+  * hacer lista de idiomas disponibles y hacer select
+  * cargar archivo para que el usfm sea asi 
+  *  eliminar libro archiveBook()
+  * crear logBooks();
+  * getBookSessions() junto con sus revisiones, pero de los comentarios solamente tener un contador de cuantos comentarios hay
+  * getReview(id (este es el session id), bookId)
+  * funcion de busqueda de idiomas, todos los que hagan a un string, que devuelva nombre y codigo
+  * autocompletado para las sesiones funcion de search igual que la de idiomas (includes)
+  * getSession(id) que con sus reviews, solamente con la cuenta de comentarios como el otro list q ta por ahi
+  * iniciarSesion() crea una sesion vacia, se le pueden agregar reviews a la sesion
+  * iniciarReview() crea una review vacia, se le pueden agregar comments a la review
+  * autocompletado para libros 
+  * exportSession() exporta una sesion en JSON
+  * importSessions(json, libro) importa una o varias sesiones desde JSON. Crear el libro sin contenido para solo leer contenido de sesiones.
+
