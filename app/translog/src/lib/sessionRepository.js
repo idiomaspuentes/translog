@@ -25,7 +25,11 @@ export async function getSession(sessionId) {
                 id: comment.id,
                 date: comment.date,
                 author: comment.author,
-                text: comment.text
+                text: comment.text,
+                type: comment.type,
+                name: comment.name,
+                path: comment.path,
+                audioDurationMs: comment.audioDurationMs,
               }))
           }));
           resolve({ ...session, reviews });

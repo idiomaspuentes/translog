@@ -2,6 +2,8 @@ import { saveSession } from "./sessionRepository.js";
 import { saveReview } from "./reviewRepository.js";
 import { saveComment } from "./commentRepository.js";
 import { getBook, saveBook } from "./bookRepository.js";
+import { Capacitor } from "@capacitor/core";
+import { storeAudioBlob } from "./audioBlobCache.js";
 
 async function ensureBookExists(bookId) {
   const [code, langCode] = bookId.split("-");
@@ -12,7 +14,11 @@ async function ensureBookExists(bookId) {
   }
 }
 
-async function importSingleSession(sessionJSON) {
+/**
+ * @param {object} sessionJSON
+ * @param {Record<string, Blob>} audioByFilename  filename → Blob (web only)
+ */
+async function importSingleSession(sessionJSON, audioByFilename = {}) {
   await ensureBookExists(sessionJSON.bookId);
 
   await saveSession({
@@ -32,18 +38,35 @@ async function importSingleSession(sessionJSON) {
     });
 
     for (const comment of review.comments) {
-      await saveComment(savedReview.id, {
+      const saved = await saveComment(savedReview.id, {
         author: comment.author,
         text: comment.text,
-        date: comment.date
+        date: comment.date,
+        type: comment.type,
+        name: comment.name,
+        path: comment.path,
+        audioDurationMs: comment.audioDurationMs,
       });
+
+      // On web: persist the audio blob in audioBlobCache keyed by the new
+      // comment ID so it can be played back without a native Filesystem.
+      if (!Capacitor.isNativePlatform() && comment.type === 'audio' && comment.name) {
+        const blob = audioByFilename[comment.name];
+        if (blob) {
+          await storeAudioBlob(saved.id, blob);
+        }
+      }
     }
   }
 }
 
-export async function importSessions(input) {
+/**
+ * @param {unknown[]|unknown} input
+ * @param {Record<string, Blob>} audioByFilename  filename → Blob (web only)
+ */
+export async function importSessions(input, audioByFilename = {}) {
   const sessions = Array.isArray(input) ? input : [input];
   for (const session of sessions) {
-    await importSingleSession(session);
+    await importSingleSession(session, audioByFilename);
   }
 }

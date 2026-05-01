@@ -37,6 +37,7 @@ function SessionPage() {
   const navigate = useNavigate()
   const router = useRouter()
 
+
   const reviews: RawReview[] = session?.reviews ?? []
 
   /**

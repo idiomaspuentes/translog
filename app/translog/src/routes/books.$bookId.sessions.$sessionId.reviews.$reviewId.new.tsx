@@ -2,9 +2,13 @@
 // @refresh reset
 import { useCallback, useState } from 'react'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { Filesystem, Directory } from '@capacitor/filesystem'
+import { Capacitor } from '@capacitor/core'
 import { getBook } from '../lib/bookRepository'
 import { getReview } from '../lib/reviewRepository'
 import { saveComment } from '../lib/commentRepository'
+import { blobToBase64 } from '../lib/sessionArchive'
+import { storeAudioBlob } from '../lib/audioBlobCache'
 import { NewCommentScreen } from '../ui/components/bible/screens/NewCommentScreen'
 import type { CommentFormState, NewCommentPayload } from '../ui/components/bible/screens/NewCommentScreen'
 
@@ -27,7 +31,7 @@ export const Route = createFileRoute(
 function NewCommentPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { book, review } = Route.useLoaderData() as any
-  const { reviewId } = Route.useParams()
+  const { bookId, sessionId, reviewId } = Route.useParams()
   const router = useRouter()
 
   const [submitState, setSubmitState] = useState<CommentFormState>('idle')
@@ -41,23 +45,89 @@ function NewCommentPage() {
   const defaultAuthor = localStorage.getItem('appAuthorName') ?? ''
 
   const handleSubmit = useCallback(
-    async ({ author, text }: NewCommentPayload) => {
-      if (!author.trim() || !text.trim()) return
+    async ({ author, text, audio }: NewCommentPayload) => {
+      console.log('[new-comment] handleSubmit called', {
+        author, textLen: text?.length, hasAudio: !!audio,
+        audioBlobSize: audio?.size, audioBlobType: audio?.type,
+      })
+      if (!author.trim()) { console.log('[new-comment] early exit: no author'); return }
+      if (!audio && !text.trim()) { console.log('[new-comment] early exit: no audio and no text'); return }
       setSubmitState('submitting')
       try {
-        await saveComment(Number(reviewId), { author: author.trim(), text: text.trim() })
-        // Remember the author name for next time
+        let audioName: string | undefined
+        let audioPath: string | undefined
+        let audioDurationMs: number | undefined
+
+        if (audio) {
+          // Measure duration from blob
+          audioDurationMs = await new Promise<number>((resolve) => {
+            const url = URL.createObjectURL(audio)
+            const el = new Audio(url)
+            el.onloadedmetadata = () => {
+              console.log('[new-comment] audio duration:', el.duration)
+              resolve(Math.round(el.duration * 1000))
+              URL.revokeObjectURL(url)
+            }
+            el.onerror = (e) => {
+              console.warn('[new-comment] audio loadedmetadata error:', e)
+              resolve(0); URL.revokeObjectURL(url)
+            }
+          })
+
+          audioName = `comment_${Date.now()}.webm`
+          audioPath = `comments/audios/${audioName}`
+          console.log('[new-comment] audioPath:', audioPath, 'durationMs:', audioDurationMs)
+
+          if (Capacitor.isNativePlatform()) {
+            const base64 = await blobToBase64(audio)
+            await Filesystem.mkdir({ path: 'comments/audios', directory: Directory.Data, recursive: true })
+            await Filesystem.writeFile({ path: audioPath, data: base64, directory: Directory.Data })
+            console.log('[new-comment] audio written to native FS')
+          } else {
+            console.log('[new-comment] web: skipping FS write')
+          }
+        }
+
+        const saved = await saveComment(Number(reviewId), {
+          author: author.trim(),
+          text: text.trim(),
+          type: audio ? 'audio' : 'text',
+          name: audioName,
+          path: audioPath,
+          audioDurationMs,
+        })
+        console.log('[new-comment] saveComment result:', saved)
+
+        // On web (no native FS) persist the blob so the review screen can
+        // create an ObjectURL for playback (sessionStorage survives refresh).
+        if (audio && !Capacitor.isNativePlatform() && saved?.id != null) {
+          console.log('[new-comment] storing blob in cache for id:', saved.id)
+          await storeAudioBlob(saved.id, audio)
+          console.log('[new-comment] blob stored, sessionStorage keys:',
+            Object.keys(sessionStorage).filter(k => k.startsWith('audio_blob_')))
+        }
+
         localStorage.setItem('appAuthorName', author.trim())
         setSubmitState('success')
-        // Navigate back to the review thread after a short delay so
-        // the user sees the success confirmation.
-        window.setTimeout(() => router.history.back(), 1500)
+        // Navigate explicitly to the review route (not history.back()) so
+        // TanStack Router always re-runs the loader and sees the new comment.
+        window.setTimeout(() => {
+          // Invalidate the loader cache first so the review route always
+          // re-fetches fresh comments (including the one we just saved).
+          void router.invalidate().then(() =>
+            router.navigate({
+              to: '/books/$bookId/sessions/$sessionId/reviews/$reviewId/',
+              params: { bookId, sessionId, reviewId },
+              replace: true,
+            }),
+          )
+        }, 1500)
       } catch (err) {
-        console.error('Error al guardar comentario:', err)
+        console.error('[new-comment] Error al guardar comentario:', err)
         setSubmitState('idle')
       }
     },
-    [reviewId, router],
+    [bookId, sessionId, reviewId, router],
   )
 
   return (

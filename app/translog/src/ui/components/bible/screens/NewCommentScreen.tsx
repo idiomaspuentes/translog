@@ -48,10 +48,11 @@ export function NewCommentScreen({
   const [internalState, setInternalState] = useState<CommentFormState>("idle");
   const state = isControlled ? externalState : internalState;
 
-  // Últimos datos reportados por el formulario.
-  const [draft, setDraft] = useState<{ author: string; text: string }>({
+  // Últimos datos reportados por el formulario (including optional audio blob).
+  const [draft, setDraft] = useState<{ author: string; text: string; audio?: Blob | null }>({
     author: defaultAuthorName ?? "",
     text: "",
+    audio: null,
   });
 
   useEffect(() => {
@@ -60,7 +61,7 @@ export function NewCommentScreen({
 
   const handlePublish = () => {
     if (state !== "idle") return;
-    onSubmit?.({ author: draft.author, text: draft.text });
+    onSubmit?.({ author: draft.author, text: draft.text, audio: draft.audio });
     if (!isControlled) {
       setInternalState("submitting");
       window.setTimeout(() => setInternalState("success"), 1200);
@@ -84,7 +85,7 @@ export function NewCommentScreen({
           defaultAuthorName={defaultAuthorName}
           authorInitial={authorInitial}
           onChange={(d) => setDraft(d)}
-          onSubmit={(d) => onSubmit?.(d)}
+          onSubmit={(d) => onSubmit?.({ author: d.author, text: d.text, audio: d.audio })}
         />
 
         {state === "success" && (

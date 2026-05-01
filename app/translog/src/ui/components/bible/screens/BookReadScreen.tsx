@@ -190,15 +190,13 @@ export function BookReadScreen({
           type="button"
           aria-label="Cerrar"
           onClick={() => setSessionsOpen(false)}
-          className="absolute inset-0 z-20 bg-foreground/30 backdrop-blur-[1px]"
+          className="fixed inset-0 z-20 bg-foreground/30 backdrop-blur-[1px]"
         />
       )}
 
+      {sessionsOpen && (
       <aside
-        aria-hidden={!sessionsOpen}
-        className={`absolute inset-y-0 right-0 z-30 flex w-[78%] max-w-[320px] flex-col border-l border-border bg-card shadow-xl transition-transform duration-200 ${
-          sessionsOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className="fixed inset-y-0 right-0 z-30 flex w-[78%] max-w-[320px] flex-col border-l border-border bg-card shadow-xl"
       >
         <div className="flex items-center justify-between border-b border-border px-4 pb-3 pt-10">
           <div className="min-w-0">
@@ -280,6 +278,7 @@ export function BookReadScreen({
           )}
         </div>
       </aside>
+      )}
     </div>
   );
 }

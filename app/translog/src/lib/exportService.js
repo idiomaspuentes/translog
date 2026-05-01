@@ -42,7 +42,11 @@ export async function getFullExportJSON() {
                     id: comment.id,
                     date: comment.date,
                     author: comment.author,
-                    text: comment.text
+                    text: comment.text,
+                    type: comment.type,
+                    name: comment.name,
+                    path: comment.path,
+                    audioDurationMs: comment.audioDurationMs,
                   }))
               }))
             }))

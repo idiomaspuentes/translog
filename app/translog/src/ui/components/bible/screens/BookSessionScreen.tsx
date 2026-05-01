@@ -87,6 +87,58 @@ export function BookSessionScreen({
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
   const [sessionsOpen, setSessionsOpen] = useState(false);
 
+  // Ref attached to the scripture scroll container so we can verify the
+  // selection is inside the USFM view before updating state.
+  const scriptureContainerRef = useRef<HTMLDivElement>(null);
+
+  // Direct selectionchange listener — more reliable than the library's
+  // onSelectionChange callback on Android WebView (which can lose the
+  // selection after commitExpandedWordTokenSelection removes and re-adds ranges).
+  useEffect(() => {
+    let clearTimer: ReturnType<typeof setTimeout>;
+
+    const handleSelectionChange = () => {
+      const sel = window.getSelection();
+      const text = sel?.toString().trim() ?? "";
+
+      if (text && scriptureContainerRef.current && sel?.rangeCount) {
+        const range = sel.getRangeAt(0);
+        // Only react to selections inside the scripture view.
+        if (!scriptureContainerRef.current.contains(range.commonAncestorContainer)) return;
+
+        clearTimeout(clearTimer);
+
+        // Walk up from the anchor node to find the nearest data-verse attribute
+        // (.usfm-tok spans carry data-verse per the library's DOM contract).
+        let verse: number | null = null;
+        let el: Element | null =
+          sel.anchorNode instanceof Element
+            ? sel.anchorNode
+            : sel.anchorNode?.parentElement ?? null;
+        while (el && scriptureContainerRef.current.contains(el)) {
+          const v = el.getAttribute("data-verse");
+          if (v) { verse = Number(v); break; }
+          el = el.parentElement;
+        }
+
+        setSelectedText(text);
+        setSelectedVerse(verse);
+      } else if (!text) {
+        // Debounce the clear to avoid flickering while the user is mid-drag.
+        clearTimer = setTimeout(() => {
+          setSelectedText("");
+          setSelectedVerse(null);
+        }, 120);
+      }
+    };
+
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => {
+      document.removeEventListener("selectionchange", handleSelectionChange);
+      clearTimeout(clearTimer);
+    };
+  }, []);
+
   const isSaveControlled = saveModalOpen !== undefined;
   const [internalSaveOpen, setInternalSaveOpen] = useState(false);
   const saveOpen = isSaveControlled ? saveModalOpen : internalSaveOpen;
@@ -187,7 +239,7 @@ export function BookSessionScreen({
         }
       />
 
-      <div className="flex-1 overflow-y-auto pb-40 pt-2">
+      <div ref={scriptureContainerRef} className="flex-1 overflow-y-auto pb-40 pt-2">
         <UsfmReadonlyView
           usfm={cachedUsj ? undefined : usfm}
           usj={cachedUsj ?? undefined}
@@ -205,10 +257,6 @@ export function BookSessionScreen({
             setCachedUsj(usj);
             setAvailableChapters(numbered);
             if (!isControlled) setInternalChapter(numbered[0] ?? 1);
-          }}
-          onSelectionChange={(sel) => {
-            setSelectedText(sel?.text ?? "");
-            setSelectedVerse(sel ? Number(sel.verseStart) : null);
           }}
         />
       </div>
@@ -326,14 +374,12 @@ export function BookSessionScreen({
           type="button"
           aria-label="Cerrar"
           onClick={() => setSessionsOpen(false)}
-          className="absolute inset-0 z-20 bg-foreground/30 backdrop-blur-[1px]"
+          className="fixed inset-0 z-20 bg-foreground/30 backdrop-blur-[1px]"
         />
       )}
+      {sessionsOpen && (
       <aside
-        aria-hidden={!sessionsOpen}
-        className={`absolute inset-y-0 right-0 z-30 flex w-[78%] max-w-[320px] flex-col border-l border-border bg-card shadow-xl transition-transform duration-200 ${
-          sessionsOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className="fixed inset-y-0 right-0 z-30 flex w-[78%] max-w-[320px] flex-col border-l border-border bg-card shadow-xl"
       >
         <div className="flex items-center justify-between border-b border-border px-4 pb-3 pt-10">
           <div className="min-w-0">
@@ -405,6 +451,7 @@ export function BookSessionScreen({
           )}
         </div>
       </aside>
+      )}
 
       <ChapterPickerModal
         open={pickerOpen}

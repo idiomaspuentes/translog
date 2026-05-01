@@ -5,9 +5,10 @@ export interface Comment {
   date: string; // ISO string: "2026-04-30T16:38:34.131Z"
   author: string;
   text: string;
-  type: string; // "text" o "audio"
-  name?: string; // Solo para tipo "audio", el nombre del archivo de audio
-  path?: string; // Solo para tipo "audio", el path del archivo de audio
+  type?: string; // "text" | "audio"
+  name?: string; // filename of the audio clip, e.g. "comment_1234.webm"
+  path?: string; // Filesystem-relative path, e.g. "comments/audios/comment_1234.webm"
+  audioDurationMs?: number; // duration in milliseconds (audio comments only)
 }
 
 
@@ -28,6 +29,8 @@ export interface Review {
 export interface Session {
   id: number; // timestamp-like
   startDate: string; // ISO string
+  endDate?: string; // ISO string — set when session is closed
+  title?: string;
   bookId: string;
   reviews: Review[];
 }

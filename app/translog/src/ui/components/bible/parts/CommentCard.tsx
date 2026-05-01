@@ -80,6 +80,9 @@ export function CommentCard({
   const [progress, setProgress] = useState(0);
   const intervalRef = useRef<number | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
+  // Tracks the URL the current audioEl was created with so we can detect
+  // when audio.src changes (e.g. resolves asynchronously after first render).
+  const loadedSrcRef = useRef<string | null>(null);
   const fallbackUrlRef = useRef<string | null>(null);
   const appliedPlayingRef = useRef(false);
 
@@ -144,14 +147,23 @@ export function CommentCard({
 
   const playAudio = (fromProgress: number) => {
     if (!audio) return;
-    // Crear el elemento de audio sincrónicamente dentro del gesto del usuario.
-    if (!audioElRef.current) {
-      const url =
-        audio.src ??
-        (fallbackUrlRef.current ?? (fallbackUrlRef.current = createFallbackAudioUrl(totalSeconds || 1)));
+    // Determine the URL to use — prefer the real src once it resolves,
+    // fall back to a synthesised tone only when src is still absent.
+    const url =
+      audio.src ??
+      (fallbackUrlRef.current ?? (fallbackUrlRef.current = createFallbackAudioUrl(totalSeconds || 1)));
+
+    // Rebuild the element if it doesn't exist OR if the URL it was created
+    // with no longer matches (src resolved asynchronously after first play).
+    if (!audioElRef.current || loadedSrcRef.current !== url) {
+      if (audioElRef.current) {
+        audioElRef.current.pause();
+        audioElRef.current.onended = null;
+      }
       const el = new Audio(url);
       el.preload = "auto";
       audioElRef.current = el;
+      loadedSrcRef.current = url;
     }
     const el = audioElRef.current;
     el.onended = finishPlayback;

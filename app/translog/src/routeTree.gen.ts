@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as RecorderRouteImport } from './routes/recorder'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BooksIndexRouteImport } from './routes/books.index'
@@ -25,11 +24,6 @@ import { Route as BooksBookIdSessionsSessionIdReviewsReviewIdNewRouteImport } fr
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RecorderRoute = RecorderRouteImport.update({
-  id: '/recorder',
-  path: '/recorder',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -91,7 +85,6 @@ const BooksBookIdSessionsSessionIdReviewsReviewIdNewRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
-  '/recorder': typeof RecorderRoute
   '/settings': typeof SettingsRoute
   '/books/$bookId': typeof BooksBookIdRouteWithChildren
   '/books/': typeof BooksIndexRoute
@@ -105,7 +98,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
-  '/recorder': typeof RecorderRoute
   '/settings': typeof SettingsRoute
   '/books': typeof BooksIndexRoute
   '/books/$bookId': typeof BooksBookIdIndexRoute
@@ -117,7 +109,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
-  '/recorder': typeof RecorderRoute
   '/settings': typeof SettingsRoute
   '/books/$bookId': typeof BooksBookIdRouteWithChildren
   '/books/': typeof BooksIndexRoute
@@ -133,7 +124,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/onboarding'
-    | '/recorder'
     | '/settings'
     | '/books/$bookId'
     | '/books/'
@@ -147,7 +137,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/onboarding'
-    | '/recorder'
     | '/settings'
     | '/books'
     | '/books/$bookId'
@@ -158,7 +147,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/onboarding'
-    | '/recorder'
     | '/settings'
     | '/books/$bookId'
     | '/books/'
@@ -173,7 +161,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OnboardingRoute: typeof OnboardingRoute
-  RecorderRoute: typeof RecorderRoute
   SettingsRoute: typeof SettingsRoute
   BooksBookIdRoute: typeof BooksBookIdRouteWithChildren
   BooksIndexRoute: typeof BooksIndexRoute
@@ -186,13 +173,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/recorder': {
-      id: '/recorder'
-      path: '/recorder'
-      fullPath: '/recorder'
-      preLoaderRoute: typeof RecorderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -322,7 +302,6 @@ const BooksBookIdRouteWithChildren = BooksBookIdRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OnboardingRoute: OnboardingRoute,
-  RecorderRoute: RecorderRoute,
   SettingsRoute: SettingsRoute,
   BooksBookIdRoute: BooksBookIdRouteWithChildren,
   BooksIndexRoute: BooksIndexRoute,

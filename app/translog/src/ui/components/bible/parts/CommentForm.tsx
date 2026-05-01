@@ -26,7 +26,7 @@ interface CommentFormProps {
   maxLength?: number;
   /** Callbacks hacia la capa de datos */
   onSubmit?: (data: { author: string; text: string; audio?: Blob | null }) => void;
-  onChange?: (data: { author: string; text: string }) => void;
+  onChange?: (data: { author: string; text: string; audio?: Blob | null }) => void;
 }
 
 const recordingBars = [30, 55, 80, 45, 70, 90, 50, 75, 40, 65, 85, 55, 35, 70, 60, 90, 45, 75];
@@ -68,10 +68,17 @@ export function CommentForm({
   const recordedChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recordedAudioUrlRef = useRef<string | null>(null);
+  const recordedBlobRef = useRef<Blob | null>(null);
+  // Always-current mirrors of `author` and `comment` state so async
+  // callbacks (e.g. recorder.onstop) can call onChange with fresh values.
+  const authorRef = useRef(defaultAuthorName);
+  const commentRef = useRef(defaultText);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   // Resincroniza si los valores por defecto cambian desde fuera (Storybook, padre).
-  useEffect(() => setAuthor(defaultAuthorName), [defaultAuthorName]);
-  useEffect(() => setComment(defaultText), [defaultText]);
+  useEffect(() => { setAuthor(defaultAuthorName); authorRef.current = defaultAuthorName; }, [defaultAuthorName]);
+  useEffect(() => { setComment(defaultText); commentRef.current = defaultText; }, [defaultText]);
   useEffect(() => {
     recordingSecondsRef.current = recordingSeconds;
   }, [recordingSeconds]);
@@ -175,9 +182,23 @@ export function CommentForm({
           const blob = new Blob(recordedChunksRef.current, {
             type: recorder.mimeType || "audio/webm",
           });
-          setRecordedAudioUrl(blob.size > 0 ? URL.createObjectURL(blob) : createFallbackAudioUrl(duration));
+          if (blob.size > 0) {
+            recordedBlobRef.current = blob;
+            setRecordedAudioUrl(URL.createObjectURL(blob));
+          } else {
+            recordedBlobRef.current = null;
+            setRecordedAudioUrl(createFallbackAudioUrl(duration));
+          }
           stopMediaStream();
           mediaRecorderRef.current = null;
+          // Notify parent so it tracks the latest audio blob even if the
+          // user never edits the text or author name after recording.
+          console.log('[CommentForm] onstop blob:', recordedBlobRef.current?.size, recordedBlobRef.current?.type)
+          onChangeRef.current?.({
+            author: authorRef.current,
+            text: commentRef.current,
+            audio: recordedBlobRef.current,
+          });
         };
 
         recorder.start();
@@ -289,9 +310,11 @@ export function CommentForm({
   const deleteRecording = () => {
     stopPlayback();
     revokeRecordedAudioUrl();
+    recordedBlobRef.current = null;
     setRecordedSeconds(null);
     setPlaying(false);
     setPlayProgress(0);
+    onChange?.({ author, text: comment, audio: null });
   };
 
   // Limpieza al desmontar
@@ -305,13 +328,15 @@ export function CommentForm({
   }, []);
 
   const handleNameChange = (v: string) => {
+    authorRef.current = v;
     setAuthor(v);
-    onChange?.({ author: v, text: comment });
+    onChange?.({ author: v, text: commentRef.current, audio: recordedBlobRef.current });
   };
   const handleTextChange = (v: string) => {
     const next = v.slice(0, maxLength);
+    commentRef.current = next;
     setComment(next);
-    onChange?.({ author, text: next });
+    onChange?.({ author: authorRef.current, text: next, audio: recordedBlobRef.current });
   };
 
   return (

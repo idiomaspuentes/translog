@@ -4,7 +4,8 @@ import { useCallback } from 'react'
 import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { getBook } from '../lib/bookRepository'
 import { listSessionsByBookId, createSession } from '../lib/sessionRepository'
-import { exportSessionJSON, getFullExportJSON } from '../lib/exportService'
+import { getFullExportJSON } from '../lib/exportService'
+import { downloadProjectAsZip } from '../lib/sessionArchive'
 import { BookReadScreen } from '../ui/components/bible/screens/BookReadScreen'
 import type { Session } from '../ui/components/bible/screens/BookReadScreen'
 
@@ -81,30 +82,44 @@ function BookReadPage() {
     [bookId, navigate],
   )
 
-  /** Exports a single session as JSON. */
+  /** Exports a single session as a ZIP (JSON + Markdown + PDF + audio files). */
   const handleExportSession = useCallback(async (session: Session) => {
-    await exportSessionJSON(session.id)
-  }, [])
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const full = await getFullExportJSON() as any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const langData = (full.language as any[])?.[0]
+      if (!langData) return
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const bookEntry = (langData.books as any[]).find((b: any) => b.id === bookId)
+      if (!bookEntry) return
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sessionEntry = (bookEntry.sessions as any[]).find((s: any) => s.id === session.id)
+      if (!sessionEntry) return
+      await downloadProjectAsZip(
+        { language: { ...langData, books: [{ ...bookEntry, sessions: [sessionEntry] }] } },
+        `${book?.name ?? bookId}_sesion_${session.id}`,
+      )
+    } catch (err) {
+      console.error('Error al exportar sesión:', err)
+    }
+  }, [book, bookId])
 
-  /** Exports all sessions for this book as JSON. */
+  /** Exports all sessions for this book as a ZIP (JSON + Markdown + PDF + audio files). */
   const handleExportAllSessions = useCallback(async () => {
     try {
-      const full = await getFullExportJSON()
-      // Filter the full export to just this book's entry
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const bookEntry = (full.language as any[])
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .flatMap((l: any) => l.books as any[])
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .find((b: any) => b.id === bookId)
-      const data = bookEntry ?? full
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${book?.name ?? bookId}_sessions.json`
-      a.click()
-      URL.revokeObjectURL(url)
+      const full = await getFullExportJSON() as any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const langData = (full.language as any[])?.[0]
+      if (!langData) return
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const bookEntry = (langData.books as any[]).find((b: any) => b.id === bookId)
+      if (!bookEntry) return
+      await downloadProjectAsZip(
+        { language: { ...langData, books: [bookEntry] } },
+        `${book?.name ?? bookId}_sesiones`,
+      )
     } catch (err) {
       console.error('Error al exportar sesiones:', err)
     }

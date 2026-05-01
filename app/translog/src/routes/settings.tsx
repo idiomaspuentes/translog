@@ -2,10 +2,13 @@
 // @refresh reset
 import { useCallback, useRef } from 'react'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { Filesystem, Directory } from '@capacitor/filesystem'
+import { Capacitor } from '@capacitor/core'
 import { languages, searchLanguages } from '../lib/config/languages'
 import { saveLanguage } from '../lib/languageRepository'
 import { getFullExportJSON } from '../lib/exportService'
 import { importSessions } from '../lib/importService'
+import { downloadProjectAsZip, pickAndReadZip, importFromZip } from '../lib/sessionArchive'
 import { SettingsScreen } from '../ui/components/bible/screens/SettingsScreen'
 import type {
   LanguageOption,
@@ -74,14 +77,26 @@ function SettingsPage() {
 
   const handleExport = useCallback(async () => {
     try {
-      const json = await getFullExportJSON()
-      const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'data_export.json'
-      a.click()
-      URL.revokeObjectURL(url)
+      const data = await getFullExportJSON()
+
+      // Collect audio files stored in the local filesystem so they can be
+      // bundled. On native, we scan the audios folder; on web we skip (no FS).
+      let audioList: { name: string; uri: string; path: string }[] = []
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const dir = await Filesystem.readdir({ path: 'comments/audios', directory: Directory.Data })
+          audioList = dir.files.map(f => ({
+            name: typeof f === 'string' ? f : f.name,
+            uri: '',
+            path: `comments/audios/${typeof f === 'string' ? f : f.name}`,
+          }))
+        } catch {
+          // Folder doesn't exist yet – no audio comments
+        }
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await downloadProjectAsZip({ language: (data as any).language?.[0] ?? data }, 'translog_export', audioList)
     } catch (err) {
       console.error('Error al exportar:', err)
     }
@@ -89,18 +104,42 @@ function SettingsPage() {
 
   const handleImport = useCallback(async () => {
     try {
-      const input = document.createElement('input')
-      input.type = 'file'
-      input.accept = '.json'
-      input.onchange = async (e: Event) => {
-        const file = (e.target as HTMLInputElement).files?.[0]
-        if (!file) return
-        const text = await file.text()
-        const parsed = JSON.parse(text)
-        await importSessions(parsed)
-        router.invalidate()
+      const buffer = await pickAndReadZip()
+      if (!buffer) return
+
+      // Try ZIP import first; fall back to legacy JSON if the buffer doesn't
+      // contain a contract.json (e.g. the user selected an old JSON export).
+      let contract: unknown
+      let audioByFilename: Record<string, Blob> = {}
+      try {
+        const result = await importFromZip(buffer)
+        contract = result.contract
+        audioByFilename = result.audioByFilename
+      } catch {
+        // Legacy JSON fallback
+        const text = new TextDecoder().decode(buffer)
+        contract = JSON.parse(text)
       }
-      input.click()
+
+      // Extract sessions from whatever shape the contract takes:
+      //   - New ZIP format:  { language: Language }           (single object)
+      //   - Old full export: { language: Language[] }         (array)
+      //   - Legacy:          Session[] or a single Session
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const lang = (contract as any)?.language
+      const sessions: unknown[] = Array.isArray(lang)
+        // Old full export: array of languages
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? lang.flatMap((l: any) => (l.books as any[] ?? []).flatMap((b: any) => b.sessions ?? []))
+        : lang?.books != null
+          // New ZIP format: single Language object
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ? (lang.books as any[]).flatMap((b: any) => b.sessions ?? [])
+          // Legacy: raw array of sessions or a single session
+          : Array.isArray(contract) ? (contract as unknown[]) : [contract]
+
+      await importSessions(sessions, audioByFilename)
+      router.invalidate()
     } catch (err) {
       console.error('Error al importar:', err)
     }
