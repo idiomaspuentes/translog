@@ -98,12 +98,16 @@ export function generateTranslogMarkdown(data: Language): string {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((review.comments as any[]).length > 0) {
-          lines.push('**Comentarios:**\n');
+          lines.push('**Comments:**\n');
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           for (const c of review.comments as any[]) {
             const dateStr = new Date(c.date).toLocaleDateString();
-            const body = c.text ? c.text : `*[audio ${c.audioDurationMs ? Math.round(c.audioDurationMs / 1000) + 's' : ''}]*`;
-            lines.push(`- **${c.author}** (${dateStr}): ${body}`);
+            if (c.type === 'audio' && c.name) {
+              const dur = c.audioDurationMs ? ` (${Math.round(c.audioDurationMs / 1000)}s)` : '';
+              lines.push(`- **${c.author}** (${dateStr}): 🔊 [${c.name}${dur}](audios/${c.name})`);
+            } else {
+              lines.push(`- **${c.author}** (${dateStr}): ${c.text ?? ''}`);
+            }
           }
           lines.push('');
         }
@@ -118,78 +122,117 @@ export function generateTranslogMarkdown(data: Language): string {
 /** Generates a human-readable PDF for the export and returns it as a Blob. */
 export const generateTranslogPDF = (data: Language): Blob => {
   const pdf = new jsPDF('p', 'mm', 'a4');
-  const marginX = 15;
-  const pageW = pdf.internal.pageSize.getWidth() - marginX * 2;
+  const mX = 14;           // left margin
+  const pageW = pdf.internal.pageSize.getWidth();
+  const contentW = pageW - mX * 2;
   const pageH = pdf.internal.pageSize.getHeight();
-  let y = marginX;
+  let y = mX;
 
-  const newline = (extra = 0) => { y += 4 + extra; };
-  const checkPage = (needed = 8) => {
-    if (y + needed > pageH - marginX) { pdf.addPage(); y = marginX; }
+  const gap = (mm = 3) => { y += mm; };
+  const needY = (mm: number) => {
+    if (y + mm > pageH - mX) { pdf.addPage(); y = mX; }
   };
 
-  const line = (
+  const txt = (
     text: string,
     fontSize: number,
-    rgb: [number, number, number] = [51, 51, 51],
-    style: 'normal' | 'bold' = 'normal',
+    rgb: [number, number, number],
+    style: 'normal' | 'bold' | 'italic',
     indent = 0,
+    maxW = contentW,
   ) => {
-    checkPage(fontSize * 0.5 + 2);
+    needY(fontSize * 0.5 + 1);
     pdf.setFontSize(fontSize);
     pdf.setTextColor(...rgb);
     pdf.setFont('helvetica', style);
-    const lines = pdf.splitTextToSize(text, pageW - indent);
-    pdf.text(lines, marginX + indent, y);
-    y += lines.length * fontSize * 0.42 + 1;
+    const wrapped = pdf.splitTextToSize(text, maxW - indent);
+    pdf.text(wrapped, mX + indent, y);
+    y += wrapped.length * (fontSize * 0.42) + 0.5;
   };
 
-  // Title
-  line('Reporte de Translog', 18, [44, 62, 80], 'bold');
-  newline();
-  line(`Idioma: ${data.name} (${data.code})`, 11);
-  newline(2);
+  const hRule = (rgb: [number, number, number] = [220, 220, 220], lw = 0.2) => {
+    pdf.setDrawColor(...rgb);
+    pdf.setLineWidth(lw);
+    pdf.line(mX, y, pageW - mX, y);
+    gap(2);
+  };
+
+  const dateISO = new Date().toISOString().slice(0, 10);
+
+  // ── Cover line ──────────────────────────────────────────────────────────────
+  txt('Translog', 20, [44, 62, 80], 'bold');
+  txt(`${data.name}  ·  ${dateISO}`, 9, [140, 140, 140], 'normal');
+  gap(4);
+  hRule([44, 62, 80], 0.5);
 
   for (const book of data.books) {
-    checkPage(14);
-    line(`LIBRO: ${book.name.toUpperCase()} [${book.code}]`, 14, [22, 160, 133], 'bold');
-    newline();
+    needY(14);
+    gap(2);
+    // ── Book name ─────────────────────────────────────────────────────────────
+    txt(book.name, 15, [22, 160, 133], 'bold');
+    gap(1);
+    hRule();
 
     for (const session of book.sessions) {
-      checkPage(12);
-      line(`Sesión ${session.id}${session.title ? ': ' + session.title : ''}`, 12, [41, 128, 185], 'bold', 5);
-      const start = new Date(session.startDate).toLocaleString();
-      const end = session.endDate ? new Date(session.endDate).toLocaleString() : 'En progreso';
-      line(`Inicio: ${start}   Fin: ${end}`, 9, [100, 100, 100], 'normal', 5);
-      newline();
+      needY(12);
+      // ── Session: title + compact date range on one line ───────────────────
+      const sTitle = session.title ?? '';
+      const sStart = new Date(session.startDate).toLocaleDateString();
+      const sEnd   = session.endDate ? new Date(session.endDate).toLocaleDateString() : '\u2026';
+      txt(sTitle, 11, [41, 128, 185], 'bold');
+      txt(`${sStart}  \u2192  ${sEnd}`, 8, [160, 160, 160], 'normal');
+      gap(2);
 
-      let rIdx = 1;
       for (const review of session.reviews) {
-        checkPage(10);
+        needY(10);
         const ref = review.reference as { chapterStart?: number; verseStart?: number; chapterEnd?: number; verseEnd?: number };
-        line(`Revisión ${rIdx++}`, 11, [80, 80, 80], 'bold', 10);
-        line(
-          `Referencia: Cap. ${ref.chapterStart ?? '?'}:${ref.verseStart ?? '?'} – Cap. ${ref.chapterEnd ?? '?'}:${ref.verseEnd ?? '?'}`,
-          9, [120, 120, 120], 'normal', 10,
-        );
-        if (review.text) line(review.text, 10, [60, 60, 60], 'normal', 10);
+        // ── Verse reference (small, muted) ───────────────────────────────────
+        const refStr = `${ref.chapterStart ?? '?'}:${ref.verseStart ?? '?'}\u2013${ref.chapterEnd ?? '?'}:${ref.verseEnd ?? '?'}`;
+        txt(refStr, 8, [150, 150, 150], 'normal', 4);
+        gap(1);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if ((review.comments as any[]).length > 0) {
-          newline();
-          line('Comentarios:', 10, [80, 80, 80], 'bold', 12);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          for (const c of review.comments as any[]) {
-            const dateStr = new Date(c.date).toLocaleDateString();
-            const body = c.text ? c.text : '[audio]';
-            line(`• ${c.author} (${dateStr}): ${body}`, 9, [60, 60, 60], 'normal', 14);
-          }
+        // ── Blockquote (left bar + italic) ────────────────────────────────────
+        if (review.text) {
+          const qIndent = 8;
+          const wrapped = pdf.splitTextToSize(review.text, contentW - qIndent - 2);
+          const lineH   = 10 * 0.42;
+          const blockH  = wrapped.length * lineH + 2;
+          needY(blockH + 2);
+          pdf.setDrawColor(22, 160, 133);
+          pdf.setLineWidth(0.8);
+          pdf.line(mX + 4, y - 2.5, mX + 4, y - 2.5 + blockH);
+          pdf.setLineWidth(0.2);
+          pdf.setDrawColor(0);
+          pdf.setFontSize(10);
+          pdf.setTextColor(70, 70, 70);
+          pdf.setFont('helvetica', 'italic');
+          pdf.text(wrapped, mX + qIndent, y);
+          y += blockH;
         }
-        newline();
+        gap(2);
+
+        // ── Comments (no header — author+date is enough context) ──────────────
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const c of review.comments as any[]) {
+          needY(8);
+          const dateStr = new Date(c.date).toLocaleDateString();
+          // Author · date on its own small line
+          txt(`${c.author}  \u00b7  ${dateStr}`, 7.5, [120, 120, 120], 'normal', 6);
+          if (c.type === 'audio' && c.name) {
+            const dur = c.audioDurationMs ? `  ${Math.round(c.audioDurationMs / 1000)}s` : '';
+            // ♪ U+266A is in Helvetica
+            txt(`\u266A  audios/${c.name}${dur}`, 8.5, [80, 80, 80], 'normal', 8, contentW - 8);
+          } else if (c.text) {
+            txt(c.text, 9, [50, 50, 50], 'normal', 8, contentW - 8);
+          }
+          gap(1.5);
+        }
+        gap(1);
+        hRule([230, 230, 230]);
       }
-      newline();
+      gap(2);
     }
-    newline(2);
+    gap(3);
   }
 
   return pdf.output('blob');
@@ -197,14 +240,10 @@ export const generateTranslogPDF = (data: Language): Blob => {
 
 /**
  * Builds and downloads a ZIP archive containing:
- *   - contract.json (full session data)
- *   - LECTURA_HUMANA.pdf (human-readable report)
- *   - Audio files embedded at their original relative paths
- *
- * Audio files are read directly from Filesystem using each comment's stored
- * `path` field (Directory.Data-relative), so no separate `audioList` scan
- * is required.  The optional `audioList` parameter is kept for backward
- * compatibility but is no longer used internally.
+ *   - data.json               (structured data for re-import)
+ *   - report_YYYY-MM-DD.md   (human-readable Markdown)
+ *   - report_YYYY-MM-DD.pdf  (human-readable PDF)
+ *   - audios/{filename}       (flat folder of all audio files)
  */
 export async function downloadProjectAsZip(
   data: ContractData,
@@ -212,39 +251,31 @@ export async function downloadProjectAsZip(
   _audioList?: { name: string; uri: string; path: string }[],
 ): Promise<void> {
   const zip = new JSZip();
-  const langCode = data.language.code;
-  const langFolder = zip.folder(langCode);
+  const audiosFolder = zip.folder('audios');
+  const dateTag = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
+  // Collect all audio comments across every book/session/review
   for (const book of data.language.books) {
-    const bookFolder = langFolder?.folder(book.code);
     for (const session of book.sessions) {
-      const sessionFolder = bookFolder?.folder(`sesion_${session.id}`);
-      const reviewsFolder = sessionFolder?.folder('revisiones');
-      let rIdx = 1;
       for (const review of session.reviews) {
-        const reviewFolder = reviewsFolder?.folder(`revision_${rIdx++}`);
-        reviewFolder?.file('revision.json', JSON.stringify(review, null, 2));
         for (const comment of review.comments) {
           if (comment.type === 'audio' && comment.path) {
-            const audioFolder = reviewFolder?.folder('audios');
-            audioFolder?.file(`${comment.name}.json`, JSON.stringify(comment, null, 2));
+            const audioName = comment.name ?? `audio_${comment.id}`;
             try {
               if (Capacitor.isNativePlatform()) {
-                // Native: read directly from Filesystem
                 const file = await Filesystem.readFile({ path: comment.path, directory: Directory.Data });
-                audioFolder?.file(comment.name ?? `audio_${comment.id}`, file.data as string, { base64: true });
+                audiosFolder?.file(audioName, file.data as string, { base64: true });
               } else {
-                // Web: retrieve blob from in-memory / sessionStorage cache
                 const blob = getAudioBlob(comment.id);
                 if (blob) {
                   const b64 = await blobToBase64(blob);
-                  audioFolder?.file(comment.name ?? `audio_${comment.id}`, b64, { base64: true });
+                  audiosFolder?.file(audioName, b64, { base64: true });
                 } else {
-                  console.warn('No se pudo incluir audio en ZIP (no encontrado en caché):', comment.path);
+                  console.warn('Audio not found in cache, skipping:', comment.path);
                 }
               }
             } catch (e) {
-              console.warn('No se pudo incluir audio en ZIP:', comment.path, e);
+              console.warn('Could not include audio in ZIP:', comment.path, e);
             }
           }
         }
@@ -252,19 +283,27 @@ export async function downloadProjectAsZip(
     }
   }
 
-  zip.file('contract.json', JSON.stringify(data, null, 2));
+  // Strip large USFM content from books — it's not needed for import and
+  // would bloat the archive significantly.
+  const exportData: ContractData = {
+    language: {
+      ...data.language,
+      books: data.language.books.map(({ content: _content, ...rest }) => rest as typeof data.language.books[0]),
+    },
+  };
+  zip.file('data.json', JSON.stringify(exportData, null, 2));
 
   try {
-    zip.file('reporte.md', generateTranslogMarkdown(data.language));
+    zip.file(`report_${dateTag}.md`, generateTranslogMarkdown(data.language));
   } catch (e) {
-    console.error('Error generando Markdown:', e);
+    console.error('Error generating Markdown:', e);
   }
 
   try {
     const pdfBlob = generateTranslogPDF(data.language);
-    zip.file('reporte.pdf', pdfBlob);
+    zip.file(`report_${dateTag}.pdf`, pdfBlob);
   } catch (e) {
-    console.error('Error generando PDF:', e);
+    console.error('Error generating PDF:', e);
   }
 
   const blob = await zip.generateAsync({ type: 'blob' });
@@ -285,8 +324,10 @@ export async function importFromZip(
   const zip = await JSZip.loadAsync(buffer);
   const audioByFilename: Record<string, Blob> = {};
 
+  // Match audio files in the flat audios/ folder (new format) or any nested
+  // audios/ subfolder (legacy format produced by older exports).
   const audioFiles = Object.entries(zip.files).filter(
-    ([name, f]) => !f.dir && /\/audios\/[^/]+\.(webm|m4a|aac|ogg|mp3)$/i.test(name),
+    ([name, f]) => !f.dir && /(?:^|\/audios\/)([^/]+\.(webm|m4a|aac|ogg|mp3))$/i.test(name),
   );
 
   for (const [zipPath, file] of audioFiles) {
@@ -299,17 +340,17 @@ export async function importFromZip(
         await Filesystem.mkdir({ path: 'comments/audios', directory: Directory.Data, recursive: true });
         await Filesystem.writeFile({ path: storagePath, data: base64, directory: Directory.Data });
       } catch (e) {
-        console.warn('No se pudo restaurar audio (native):', storagePath, e);
+        console.warn('Could not restore audio (native):', storagePath, e);
       }
     } else {
-      // Web: collect blobs; they'll be cached by audioBlobCache after import
-      // assigns stable comment IDs.
+      // Web: collect blobs; audioBlobCache stores them after comment IDs are assigned.
       audioByFilename[fileName] = await file.async('blob');
     }
   }
 
-  const contractFile = zip.file('contract.json');
-  if (!contractFile) throw new Error('El ZIP no contiene contract.json');
+  // Support data.json (current), datos.json, and contract.json (legacy).
+  const contractFile = zip.file('data.json') ?? zip.file('datos.json') ?? zip.file('contract.json');
+  if (!contractFile) throw new Error('ZIP does not contain data.json');
   const contractText = await contractFile.async('string');
   return { contract: JSON.parse(contractText), audioByFilename };
 }

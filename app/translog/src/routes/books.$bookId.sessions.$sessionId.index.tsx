@@ -54,6 +54,7 @@ function SessionPage() {
       map[ch][v].push({
         fragment: r.text,
         comments: Array.isArray(r.comments) ? r.comments.length : (r.comments as number) ?? 0,
+        date: r.date,
       } satisfies SessionEntry)
     })
     return map

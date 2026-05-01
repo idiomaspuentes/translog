@@ -18,7 +18,7 @@ export async function getSession(sessionId) {
             id: review.id,
             text: review.text,
             reference: review.reference,
-            date: review.date,
+            date: review.date ?? review.startDate,
             comments: allComments
               .filter(c => c.reviewId === review.id)
               .map(comment => ({
@@ -101,7 +101,7 @@ export async function listSessionsByBookId(bookId) {
               id: review.id,
               text: review.text,
               reference: review.reference,
-              date: review.date,
+              date: review.date ?? review.startDate,
               comments: allComments.filter(c => c.reviewId === review.id).length
             }));
             return { ...session, reviews };

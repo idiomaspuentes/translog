@@ -19,6 +19,8 @@ import { ChapterPickerModal } from "../parts/ChapterPickerModal";
 export interface SessionEntry {
   fragment: string;
   comments: number;
+  /** ISO date string of when the review was created. */
+  date?: string;
 }
 export type SessionMap = Record<number, Record<number, SessionEntry[]>>;
 
@@ -428,15 +430,22 @@ export function BookSessionScreen({
                           type="button"
                           onClick={() => onOpenSession?.({ chapter, verse: v, index: i, entry: r })}
                           aria-label={`Abrir comentario: ${r.fragment} (${r.comments} comentarios)`}
-                          className="group flex w-full items-center gap-2 rounded-lg border-l-2 border-primary/60 bg-muted/40 px-2.5 py-1.5 text-left transition-colors hover:bg-muted"
+                          className="group flex w-full flex-col gap-1 rounded-lg border-l-2 border-primary/60 bg-muted/40 px-2.5 py-1.5 text-left transition-colors hover:bg-muted"
                         >
                           <span className="min-w-0 flex-1 text-xs italic leading-snug text-foreground/80">
                             "{r.fragment}"
                           </span>
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.6rem] font-semibold tabular-nums text-primary">
-                            <MessageCircle className="h-3 w-3" />
-                            {r.comments}
-                          </span>
+                          <div className="flex items-center justify-between gap-2">
+                            {r.date && (
+                              <span className="text-[0.6rem] text-muted-foreground">
+                                {new Date(r.date).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })}
+                              </span>
+                            )}
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.6rem] font-semibold tabular-nums text-primary">
+                              <MessageCircle className="h-3 w-3" />
+                              {r.comments}
+                            </span>
+                          </div>
                         </button>
                       </li>
                     ))}

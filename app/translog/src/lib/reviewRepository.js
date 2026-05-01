@@ -53,7 +53,7 @@ export async function listReviewsBySession(sessionId) {
       id: review.id,
       text: review.text,
       reference: review.reference,
-      date: review.date
+      date: review.date ?? review.startDate,
     })));
   });
 }
